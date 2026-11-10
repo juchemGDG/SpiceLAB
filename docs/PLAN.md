@@ -65,10 +65,18 @@ docs/                Plan, Lehrplanbezug, Design
    offen: nicht angeschlossene Bauteile im Editor herausfiltern statt „hängt in der Luft“ zu melden (Phase 6)
 2. Nichtlinear: Newton-Raphson mit Konvergenzhilfen (Dämpfung, Gmin, Quellenrampe);
    Diode, LED (nach Farbe), Z-Diode, Glühlampe (temperaturabhängiger Widerstand)
-   <- erledigt bis auf Glühlampe: Newton mit ngspice-Kriterien, pnjlim, Gmin-/Quellen-Stepping,
-      Diode (IS, N, RS, BV, IBV, NBV), Bibliothek 1N4148/1N4001, LEDs 5 Farben, Z-Dioden 3,3–12 V
+   <- erledigt: Newton mit ngspice-Kriterien, pnjlim, Gmin-/Quellen-Stepping,
+      Diode (IS, N, RS, BV, IBV, NBV), Bibliothek 1N4148/1N4001, LEDs 5 Farben, Z-Dioden 3,3–12 V,
+      Glühlampe (Wolfram-Faden, Wärmebilanz) mit Bibliothek
 3. Zeitverlauf (Transient): Kondensator, Spule, gekoppelte Spulen (Transformator), Trapez-/Euler-Verfahren,
    Schrittweitensteuerung; Quellen Sinus/Rechteck/Puls, zeitgesteuerte Schalter
+   <- erledigt: Sinus/Puls mit Haltepunkten, ChargeHistory + LTE (CKTterr), Kondensator, Spule mit
+      Wicklungswiderstand, Kopplung K, transient.js (DCtran-Ablauf), Schalter, Glühlampe mit thermischer
+      Trägheit, Diode mit CJO/TT. Für den Editor merken: Zeitanalyse standardmäßig „Kondensatoren
+      entladen“ starten (Anfangsbedingungen), sonst sind Kondensatoren hinter offenen Schaltern
+      schon geladen (Arbeitspunkt = unendlich lange Zeit).
+   offen: Spitze der Induktionsspannung beim Abschalten ohne Freilaufdiode ist nur qualitativ
+      (Wicklungskapazität/Funke nicht modelliert)
 4. Bauteilbibliothek: Akku/Batterie/Netzgerät mit Innenwiderstand, Solarzelle, Schalter, Taster, Poti, LDR, NTC,
    NPN/PNP (BC547, BC557, BC337, BD139), MOSFET (BS170, IRLZ44N), OPV (LM358, TL072), Motor, Summer
 5. Referenztests gegen ngspice, Dokumentation der Modellgrenzen
