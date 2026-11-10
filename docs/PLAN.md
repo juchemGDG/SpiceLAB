@@ -28,6 +28,23 @@ Läuft im Browser und als Desktop-Programm (Tauri 2). Lehrplanbezug: `docs/LEHRP
 - **Vorzeichen im Kern:** Spannung `U = φ(Anschluss 1) − φ(Anschluss 2)`, Strom `I` fließt im Bauteil
   von Anschluss 1 nach Anschluss 2 (wie SPICE). Die Oberfläche zeigt später Beträge mit Pfeilen.
 
+## Bauteile (vom Nutzer bestätigt, 10.11.2026)
+Pflicht: Widerstand, LED, Diode, Z-Diode, Transistor (NPN/PNP), MOSFET, Schalter, Taster, Akku,
+Solarzelle, Operationsverstärker, Kondensator, Spule, induktive Kopplung zweier Spulen (Transformator).
+Die Bibliothek bleibt erweiterbar: ein neues Bauteil = ein Modell in `engine/elements/` + Kennwerte in `library/`.
+
+## Numerik wie ngspice
+Der Kern soll technisch so sauber arbeiten wie ngspice, nur ohne dessen Umfang. Übernommen werden:
+- Newton-Raphson mit den Konvergenzkriterien von ngspice (RELTOL 1e-3, VNTOL 1 µV, ABSTOL 1 pA,
+  ITL1 100), zusätzlich Strom-Konvergenzprüfung je Bauteil
+- Spannungsbegrenzung an pn-Übergängen (pnjlim) und Startwert Vcrit, GMIN parallel zu jedem Übergang
+- Konvergenzhilfen für den Arbeitspunkt: Gmin-Stepping, dann Quellen-Stepping
+- Zeitbereich: Trapezverfahren (Start mit Euler rückwärts), Schrittweite über den lokalen
+  Abschneidefehler (LTE), Haltepunkte an Flanken von Quellen und Schaltzeitpunkten
+- Bauteilmodelle mit SPICE-Parametern (Diode: IS, N, RS, BV, IBV, CJO, TT; Transistor: Gummel-Poon-Kern;
+  MOSFET: Level 1 mit Kanallängenmodulation; gekoppelte Spulen: Koppelfaktor k)
+- Bahnwiderstände als innere Knoten wie in ngspice
+
 ## Ordner
 ```
 app/                 Web-App (wird 1:1 ausgeliefert und von Tauri geladen)
@@ -48,9 +65,9 @@ docs/                Plan, Lehrplanbezug, Design
    offen: nicht angeschlossene Bauteile im Editor herausfiltern statt „hängt in der Luft“ zu melden (Phase 6)
 2. Nichtlinear: Newton-Raphson mit Konvergenzhilfen (Dämpfung, Gmin, Quellenrampe);
    Diode, LED (nach Farbe), Z-Diode, Glühlampe (temperaturabhängiger Widerstand)
-3. Zeitverlauf (Transient): Kondensator, Spule, Trapez-/Euler-Verfahren, Schrittweitensteuerung;
-   Quellen Sinus/Rechteck/Puls, zeitgesteuerte Schalter
-4. Bauteilbibliothek: Batterie/Netzgerät mit Innenwiderstand, Poti, LDR, NTC, Taster/Schalter,
+3. Zeitverlauf (Transient): Kondensator, Spule, gekoppelte Spulen (Transformator), Trapez-/Euler-Verfahren,
+   Schrittweitensteuerung; Quellen Sinus/Rechteck/Puls, zeitgesteuerte Schalter
+4. Bauteilbibliothek: Akku/Batterie/Netzgerät mit Innenwiderstand, Solarzelle, Schalter, Taster, Poti, LDR, NTC,
    NPN/PNP (BC547, BC557, BC337, BD139), MOSFET (BS170, IRLZ44N), OPV (LM358, TL072), Motor, Summer
 5. Referenztests gegen ngspice, Dokumentation der Modellgrenzen
 6. Editor im SchaltLab-/PAP-Stil: Bauteilkarten, Raster, Leitungen, Drehen/Spiegeln, Eigenschaften,
