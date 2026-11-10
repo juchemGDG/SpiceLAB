@@ -20,6 +20,9 @@ export const SIM_DEFAULTS = Object.freeze({
   gmin: 1e-12, // GMIN: kleinster Leitwert parallel zu jedem pn-Übergang in S
   maxIterations: 100, // ITL1: höchstens so viele Newton-Schritte für den Arbeitspunkt
   stepIterations: 50, // ITL2: höchstens so viele je Schritt der Konvergenzhilfen
+  tranIterations: 10, // ITL4: höchstens so viele je Zeitschritt
+  trtol: 7, // TRTOL: Faktor, um den der geschätzte Abschneidefehler die Toleranz überschätzt
+  chgtol: 1e-14, // CHGTOL: kleinste beachtete Ladung in C
 });
 
 export class ConvergenceError extends Error {
