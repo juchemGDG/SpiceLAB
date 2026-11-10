@@ -1,17 +1,20 @@
 // Bauteilbibliothek: Bipolartransistoren aus dem Schulsortiment.
 //
 // Herkunft der Parameter (Feld source):
-//   'hersteller'  – SPICE-Modell des Herstellers (Philips/NXP), aus dem Gedächtnis übernommen
-//   'angepasst'   – Gummel-Poon-Parameter, an Datenblattwerte angepasst
-// Beides ist bis zum Abgleich mit den Originaldateien bzw. ngspice (Phase 5) als ungeprüft zu
-// betrachten. Die Tests sichern die Datenblattgrenzen ab (hFE, U_BE, U_CE,sat).
+//   'schwestertyp' – Philips-SPICE-Modell des Schwestertyps (BC546B bzw. BC556B: gleiche Familie,
+//                    höhere Spannungsklasse). Abgleich 11/2026: Die Werte stimmen mit den in Foren
+//                    veröffentlichten Philips-Modellen des BC546B/BC556B überein; die Originaldatei
+//                    für BC547B/BC557B war nicht abrufbar.
+//   'angepasst'    – Gummel-Poon-Parameter, an Datenblattwerte angepasst
+// Abgesichert durch Tests: Datenblattgrenzen (hFE, U_BE, U_CE,sat) und Abgleich der Umsetzung des
+// Modells mit ngspice (tests/reference.test.js).
 // Imax/Pmax: Grenzwerte aus dem Datenblatt (für spätere Überlastwarnungen).
 
 export const TRANSISTORS = {
   BC547B: {
     label: 'BC547B (NPN, Kleinsignal)',
     polarity: 'npn',
-    source: 'hersteller',
+    source: 'schwestertyp',
     datasheet: { hFE: [200, 450], at: { IC: 2e-3, UCE: 5 } },
     model: {
       IS: 2.39e-14, NF: 1.008, ISE: 3.545e-15, NE: 1.541, BF: 294.3, IKF: 0.1357, VAF: 63.2,
@@ -26,7 +29,7 @@ export const TRANSISTORS = {
   BC557B: {
     label: 'BC557B (PNP, Kleinsignal)',
     polarity: 'pnp',
-    source: 'hersteller',
+    source: 'schwestertyp',
     datasheet: { hFE: [220, 475], at: { IC: 2e-3, UCE: 5 } },
     model: {
       IS: 3.834e-14, NF: 1.008, ISE: 1.219e-14, NE: 1.528, BF: 344.4, IKF: 0.08039, VAF: 21.11,
