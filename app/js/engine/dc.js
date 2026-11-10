@@ -27,26 +27,14 @@ export function operatingPoint(netlist, options = {}) {
   const circuit = netlist instanceof Circuit ? netlist : new Circuit(netlist);
   const system = new MnaSystem(circuit.nodeCount, circuit.branchCount);
   const ctx = createContext(options);
-
-  let x, iterations, method;
-  try {
-    ({ x, iterations, method } = solveOperatingPoint(circuit, system, ctx));
-  } catch (err) {
-    if (err instanceof SingularMatrixError) throw explainSingular(circuit, err.index);
-    if (err instanceof ConvergenceError) {
-      throw new CircuitError(
-        'Für diese Schaltung lässt sich kein Arbeitspunkt berechnen. ' +
-          'Prüfe, ob alle Bauteile sinnvoll angeschlossen sind, z. B. ob vor Dioden und LEDs ein Widerstand liegt.',
-      );
-    }
-    throw err;
-  }
+  const { x, iterations, method } = solveDc(circuit, system, ctx);
 
   const potentials = { 0: 0 };
   for (let i = 0; i < circuit.externalNodeCount; i++) potentials[circuit.nodeNames[i]] = x[i];
 
   const elements = {};
   for (const el of circuit.elements) {
+    if (el.nodes.length === 0) continue; // z. B. Kopplung zweier Spulen: kein eigener Strom
     const U = el.voltage(x);
     const I = el.current(x);
     elements[el.name] = { U, I, P: U * I };
@@ -54,7 +42,32 @@ export function operatingPoint(netlist, options = {}) {
   return { potentials, elements, iterations, method };
 }
 
-/** Übersetzt „Matrix singulär“ in eine Meldung, mit der man die Schaltung reparieren kann. */
+/**
+ * Löst den Arbeitspunkt und übersetzt numerische Fehler in verständliche Meldungen.
+ * Wird auch von der Zeitbereichsanalyse für den Startzustand verwendet.
+ * @returns {{x: Float64Array, iterations: number, method: string}}
+ * @throws {CircuitError}
+ */
+export function solveDc(circuit, system, ctx) {
+  try {
+    return solveOperatingPoint(circuit, system, ctx);
+  } catch (err) {
+    throw translateError(circuit, err);
+  }
+}
+
+/** Übersetzt Fehler des Gleichungslösers in eine Meldung, mit der man die Schaltung reparieren kann. */
+export function translateError(circuit, err) {
+  if (err instanceof SingularMatrixError) return explainSingular(circuit, err.index);
+  if (err instanceof ConvergenceError) {
+    return new CircuitError(
+      'Für diese Schaltung lässt sich kein Arbeitspunkt berechnen. ' +
+        'Prüfe, ob alle Bauteile sinnvoll angeschlossen sind, z. B. ob vor Dioden und LEDs ein Widerstand liegt.',
+    );
+  }
+  return err;
+}
+
 function explainSingular(circuit, unknown) {
   if (circuit.internalOwner.has(unknown)) {
     const name = circuit.internalOwner.get(unknown).name;
