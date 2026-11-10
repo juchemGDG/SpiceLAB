@@ -79,6 +79,17 @@ docs/                Plan, Lehrplanbezug, Design
       (Wicklungskapazität/Funke nicht modelliert)
 4. Bauteilbibliothek: Akku/Batterie/Netzgerät mit Innenwiderstand, Solarzelle, Schalter, Taster, Poti, LDR, NTC,
    NPN/PNP (BC547, BC557, BC337, BD139), MOSFET (BS170, IRLZ44N), OPV (LM358, TL072), Motor, Summer
+   <- erledigt bis auf Summer: Batterie, Poti, LDR/NTC, Solarzelle (Ein-Dioden-Modell), Transistor
+      (Gummel-Poon-Kern + Ladungen), MOSFET Level 1 (Bodydiode, Gate-Kapazitäten), OPV-Verhaltensmodell
+      (A0/GBW/SR/Aussteuergrenzen/Strombegrenzung), Umschalter, Gleichstrommotor; Bibliothek: Batterien,
+      Sensoren, Solar, BC547B/BC557B/BC337/BD139, BS170/IRLZ44N/IRF540N/IRF9540N, LM358/TL072/MCP6002,
+      Schalter/Taster, Motoren; Tests mit Schulschaltungen (Dämmerungsschalter, Wechselblinker, …).
+   Modellgrenzen (bekannt, dokumentiert im Code):
+      Transistor ohne Emitter-Basis-Durchbruch (U_EBO), ohne XTF/ITF/XCJC/Substrat;
+      MOSFET ohne Unterschwellstrom; OPV einpolig, ohne Gleichtaktbereich/Phasenumkehr, Offset 0;
+      LDR ohne Trägheit, NTC ohne Eigenerwärmung; Motorlast nur als konstantes Moment.
+   Herkunft: BC547B/BC557B-Parameter aus dem Gedächtnis (NXP-Modelle) – in Phase 5 prüfen.
+   offen: Summer (aktiver Piezosummer)
 5. Referenztests gegen ngspice, Dokumentation der Modellgrenzen
 6. Editor im SchaltLab-/PAP-Stil: Bauteilkarten, Raster, Leitungen, Drehen/Spiegeln, Eigenschaften,
    Rückgängig, Speichern/Laden (JSON), Bildexport
