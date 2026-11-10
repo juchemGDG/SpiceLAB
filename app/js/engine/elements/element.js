@@ -15,6 +15,9 @@ export class Element {
   /** Anzahl der Anschlüsse; von jeder Unterklasse festgelegt. */
   static terminalCount = 2;
 
+  /** Deutsche Bezeichnung für Meldungen, z. B. 'Widerstand'. */
+  static label = 'Bauteil';
+
   constructor(spec) {
     const { name, nodes } = spec;
     if (typeof name !== 'string' || name === '') {

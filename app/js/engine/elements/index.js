@@ -7,9 +7,10 @@ import { CurrentSource } from './current-source.js';
 import { Diode } from './diode.js';
 import { Lamp } from './lamp.js';
 import { Capacitor } from './capacitor.js';
+import { Inductor } from './inductor.js';
 
 export const ELEMENT_TYPES = new Map(
-  [Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor].map((cls) => [cls.type, cls]),
+  [Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor, Inductor].map((cls) => [cls.type, cls]),
 );
 
 /** Erzeugt ein Bauteil aus seiner Beschreibung { type, name, nodes, … }. */

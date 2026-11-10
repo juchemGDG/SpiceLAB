@@ -25,6 +25,7 @@ const at = Element.at;
 
 export class Diode extends Element {
   static type = 'D';
+  static label = 'Diode';
 
   /** spec: { name, nodes: [anode, kathode], model: { IS, N, RS, BV, IBV, NBV } } */
   constructor(spec) {

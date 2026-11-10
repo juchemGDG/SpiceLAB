@@ -69,10 +69,11 @@ function explainSingular(circuit, unknown) {
       { nodes: [node], elements: attached },
     );
   }
-  const source = circuit.elementOfBranch(unknown);
+  // Zweigströme gehören zu Spannungsquellen und Spulen (für Gleichstrom ein Leiter ohne Widerstand)
+  const el = circuit.elementOfBranch(unknown);
   return new CircuitError(
-    `Die Spannungsquelle „${source.name}“ ist direkt parallel zu einer anderen Spannungsquelle ` +
-      'oder bildet mit Spannungsquellen eine Masche ohne Widerstand. Das ist ein Kurzschluss.',
-    { elements: [source.name] },
+    `„${el.name}“ (${el.constructor.label}) bildet mit Spannungsquellen oder Spulen eine Masche ohne Widerstand ` +
+      '(z. B. zwei Spannungsquellen direkt parallel). Für Gleichstrom ist das ein Kurzschluss.',
+    { elements: [el.name] },
   );
 }

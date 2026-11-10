@@ -3,6 +3,7 @@ import { Element } from './element.js';
 
 export class Resistor extends Element {
   static type = 'R';
+  static label = 'Widerstand';
 
   /** spec: { name, nodes: [a, b], value: R in Ω } */
   constructor(spec) {
