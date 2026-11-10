@@ -103,8 +103,12 @@ export class Diode extends Element {
     const [a, k] = this.#junctionNodes();
     if (this.model.RS > 0) system.stampConductance(this.nodeIndices[0], a, 1 / this.model.RS);
 
-    // Startwert wie ngspice: Übergang knapp leitend (Vcrit); danach begrenzte Newton-Vorschläge
-    const vd = this.vd === null ? this.vCrit : this.#limit(this.#junctionVoltage(x), ctx);
+    // Kaltstart wie ngspice (MODEINITJCT): Übergang knapp leitend (Vcrit).
+    // Weiterrechnen von einer Lösung: deren Spannung, danach begrenzte Newton-Vorschläge.
+    let vd;
+    if (ctx.initJunctions) vd = this.vCrit;
+    else if (this.vd === null) vd = this.#junctionVoltage(x);
+    else vd = this.#limit(this.#junctionVoltage(x), ctx);
     const { id, gd } = this.evaluate(vd, ctx.options.gmin);
     this.vd = vd;
     this.id = id;

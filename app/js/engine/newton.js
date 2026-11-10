@@ -19,6 +19,7 @@ export const SIM_DEFAULTS = Object.freeze({
   abstol: 1e-12, // ABSTOL: absolute Toleranz für Ströme in A
   gmin: 1e-12, // GMIN: kleinster Leitwert parallel zu jedem pn-Übergang in S
   maxIterations: 100, // ITL1: höchstens so viele Newton-Schritte für den Arbeitspunkt
+  stepIterations: 50, // ITL2: höchstens so viele je Schritt der Konvergenzhilfen
 });
 
 export class ConvergenceError extends Error {
@@ -38,6 +39,7 @@ export function createContext(options = {}) {
     sourceFactor: 1, // Faktor für alle Quellen (Quellen-Stepping)
     diagonalGmin: 0, // zusätzlicher Leitwert jedes Knotens nach Masse (Gmin-Stepping)
     limited: false, // wird von Bauteilen gesetzt, die ihre Spannung begrenzen mussten
+    initJunctions: false, // Kaltstart: pn-Übergänge beginnen bei Vcrit (nur 1. Iteration ohne Startlösung)
   };
 }
 
@@ -46,17 +48,18 @@ export function createContext(options = {}) {
  * @param {import('./circuit.js').Circuit} circuit
  * @param {import('./mna.js').MnaSystem} system
  * @param {ReturnType<typeof createContext>} ctx
- * @param {Float64Array} [x0] Startlösung (sonst alles 0)
+ * @param {Float64Array} [x0] Startlösung; ohne sie Kaltstart (alles 0, pn-Übergänge bei Vcrit)
+ * @param {number} [maxIterations] Höchstzahl der Schritte (Vorgabe ITL1)
  * @returns {{x: Float64Array, iterations: number}}
  * @throws {ConvergenceError}
  */
-export function newtonSolve(circuit, system, ctx, x0) {
-  const { maxIterations } = ctx.options;
+export function newtonSolve(circuit, system, ctx, x0, maxIterations = ctx.options.maxIterations) {
   let x = x0 ? Float64Array.from(x0) : new Float64Array(system.size);
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     system.clear();
     ctx.limited = false;
+    ctx.initJunctions = iteration === 1 && !x0;
     for (const el of circuit.elements) el.stamp(system, x, ctx);
     if (ctx.diagonalGmin > 0) system.addNodeDiagonal(ctx.diagonalGmin);
     const xNew = system.solve();

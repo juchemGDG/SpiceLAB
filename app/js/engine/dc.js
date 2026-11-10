@@ -2,13 +2,15 @@
 // im eingeschwungenen Zustand mit Gleichspannung.
 //
 // Ablauf: Schaltung aufbauen → Newton-Iteration (jedes Bauteil stempelt, Gleichungssystem lösen,
-// wiederholen bis konvergiert) → Werte ablesen. Lineare Schaltungen brauchen nur einen Durchlauf.
+// wiederholen bis konvergiert), bei Bedarf mit Konvergenzhilfen (op-strategies.js) → Werte ablesen.
+// Lineare Schaltungen brauchen nur einen Durchlauf.
 
 import { Circuit } from './circuit.js';
 import { CircuitError } from './errors.js';
 import { MnaSystem } from './mna.js';
 import { SingularMatrixError } from './linalg.js';
-import { createContext, newtonSolve } from './newton.js';
+import { ConvergenceError, createContext } from './newton.js';
+import { solveOperatingPoint } from './op-strategies.js';
 
 /**
  * @param {object|Circuit} netlist Netzliste (siehe circuit.js) oder fertige Schaltung
@@ -16,20 +18,27 @@ import { createContext, newtonSolve } from './newton.js';
  * @returns {{
  *   potentials: Record<string, number>,
  *   elements: Record<string, {U: number, I: number, P: number}>,
- *   iterations: number
+ *   iterations: number,
+ *   method: string
  * }} Potenziale je Knoten (Masse = 0 V), U, I, P je Bauteil, Anzahl der Newton-Schritte
+ *    und verwendete Strategie ('direkt', 'gmin' oder 'quellen')
  */
 export function operatingPoint(netlist, options = {}) {
   const circuit = netlist instanceof Circuit ? netlist : new Circuit(netlist);
   const system = new MnaSystem(circuit.nodeCount, circuit.branchCount);
   const ctx = createContext(options);
-  for (const el of circuit.elements) el.reset();
 
-  let x, iterations;
+  let x, iterations, method;
   try {
-    ({ x, iterations } = newtonSolve(circuit, system, ctx));
+    ({ x, iterations, method } = solveOperatingPoint(circuit, system, ctx));
   } catch (err) {
     if (err instanceof SingularMatrixError) throw explainSingular(circuit, err.index);
+    if (err instanceof ConvergenceError) {
+      throw new CircuitError(
+        'Für diese Schaltung lässt sich kein Arbeitspunkt berechnen. ' +
+          'Prüfe, ob alle Bauteile sinnvoll angeschlossen sind, z. B. ob vor Dioden und LEDs ein Widerstand liegt.',
+      );
+    }
     throw err;
   }
 
@@ -42,7 +51,7 @@ export function operatingPoint(netlist, options = {}) {
     const I = el.current(x);
     elements[el.name] = { U, I, P: U * I };
   }
-  return { potentials, elements, iterations };
+  return { potentials, elements, iterations, method };
 }
 
 /** Übersetzt „Matrix singulär“ in eine Meldung, mit der man die Schaltung reparieren kann. */
