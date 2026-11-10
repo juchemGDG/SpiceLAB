@@ -26,7 +26,9 @@ test('Einweggleichrichter mit Glättungskondensator: Spitzenwert und Restwelligk
   const ripple = max - min;
   const estimate = max / RL / (f * C); // Lehrbuchnäherung ΔU ≈ I/(f·C)
   assert.ok(Math.abs(ripple - estimate) < 0.15 * estimate, `Welligkeit ${ripple} V, Näherung ${estimate} V`);
-  // in der negativen Halbwelle sperrt die Diode
+  // in der negativen Halbwelle sperrt die Diode; beim Abschalten fließt wegen der gespeicherten
+  // Ladung (TT = 5,7 µs) kurz ein kleiner Rückstrom – wie bei einer echten 1N4001
+  const maxDiodeCurrent = Math.max(...r.elements.D1.I);
   const minDiodeCurrent = Math.min(...r.elements.D1.I);
-  assert.ok(minDiodeCurrent > -1e-6, `Rückstrom ${minDiodeCurrent} A`);
+  assert.ok(minDiodeCurrent > -0.01 * maxDiodeCurrent, `Rückstrom ${minDiodeCurrent} A`);
 });

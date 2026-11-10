@@ -1,4 +1,4 @@
-// Halbleiterdiode – Grundlage für Diode, LED und Z-Diode (SPICE-Diodenmodell, Gleichstromteil).
+// Halbleiterdiode – Grundlage für Diode, LED und Z-Diode (SPICE-Diodenmodell).
 //
 //   Anode ──[ RS ]── innerer Knoten ──▶|── Kathode
 //
@@ -15,11 +15,19 @@
 //   BV  Durchbruchspannung in V     (Vorgabe: kein Durchbruch)
 //   IBV Strom bei BV in A           (Vorgabe 1 mA)
 //   NBV Emissionskoeffizient im Durchbruch (Vorgabe N)
-// CJO und TT (Sperrschicht- und Diffusionskapazität) werden mit dem Zeitbereich in Phase 3 ergänzt.
+//
+// Ladung im pn-Übergang (nur im Zeitbereich wirksam, wie in SPICE):
+//   Sperrschicht:  C_j = CJO / (1 − U_D/VJ)^M          für U_D < FC·VJ, darüber linear fortgesetzt
+//   Diffusion:     Q_d = TT · I_D                       (gespeicherte Ladung im Durchlassbetrieb →
+//                                                       Sperrverzug beim Umschalten)
+//   CJO Sperrschichtkapazität bei 0 V in F (Vorgabe 0)   VJ Diffusionsspannung in V (Vorgabe 1)
+//   M   Gradationsexponent (Vorgabe 0,5)                  FC Grenze für die Fortsetzung (Vorgabe 0,5)
+//   TT  Transitzeit in s (Vorgabe 0)
 
 import { Element } from './element.js';
 import { CircuitError } from '../errors.js';
 import { thermalVoltage, criticalVoltage, limitJunctionVoltage } from '../junction.js';
+import { ChargeHistory } from '../integration.js';
 
 const at = Element.at;
 
@@ -27,14 +35,18 @@ export class Diode extends Element {
   static type = 'D';
   static label = 'Diode';
 
-  /** spec: { name, nodes: [anode, kathode], model: { IS, N, RS, BV, IBV, NBV } } */
+  /** spec: { name, nodes: [anode, kathode], model: { IS, N, RS, BV, IBV, NBV, CJO, VJ, M, FC, TT } } */
   constructor(spec) {
     super(spec);
-    const m = { IS: 1e-14, N: 1, RS: 0, BV: Infinity, IBV: 1e-3, ...spec.model };
+    const m = { IS: 1e-14, N: 1, RS: 0, BV: Infinity, IBV: 1e-3, CJO: 0, VJ: 1, M: 0.5, FC: 0.5, TT: 0, ...spec.model };
     m.NBV ??= m.N;
-    for (const key of ['IS', 'N', 'IBV', 'NBV', 'BV']) this.#requirePositive(m, key);
-    if (!(m.RS >= 0)) this.#fail('RS darf nicht negativ sein');
+    for (const key of ['IS', 'N', 'IBV', 'NBV', 'BV', 'VJ']) this.#requirePositive(m, key);
+    for (const key of ['RS', 'CJO', 'TT']) if (!(m[key] >= 0)) this.#fail(`${key} darf nicht negativ sein`);
+    if (!(m.M > 0 && m.M < 1)) this.#fail('M muss zwischen 0 und 1 liegen');
+    if (!(m.FC >= 0 && m.FC < 1)) this.#fail('FC muss zwischen 0 und 1 liegen');
     this.model = m;
+    this.hasCharge = m.CJO > 0 || m.TT > 0;
+    this.history = new ChargeHistory();
 
     const vt = thermalVoltage();
     this.nVt = m.N * vt; // „Temperaturspannung“ im Durchlassbereich
@@ -57,8 +69,9 @@ export class Diode extends Element {
 
   reset() {
     this.vd = null; // Spannung am pn-Übergang der letzten Iteration (null = noch keine)
-    this.id = 0; // Strom dort
+    this.id = 0; // Strom dort (im Zeitbereich einschließlich Umladestrom)
     this.gd = 0; // Steigung dI/dU dort
+    this.inTransient = false;
   }
 
   /** Knoten, zwischen denen der pn-Übergang liegt. */
@@ -86,6 +99,36 @@ export class Diode extends Element {
     return { id: id + gmin * vd, gd: gd + gmin };
   }
 
+  /**
+   * Ladung q und Kapazität dq/dU des pn-Übergangs bei der Spannung vd (Formeln wie SPICE).
+   * Oberhalb von FC·VJ würde CJO/(1 − U/VJ)^M gegen unendlich gehen; dort wird linear fortgesetzt.
+   */
+  charge(vd) {
+    const { CJO, VJ, M, FC, TT } = this.model;
+    let q = 0;
+    let c = 0;
+    if (CJO > 0) {
+      if (vd < FC * VJ) {
+        const arg = 1 - vd / VJ;
+        q = ((CJO * VJ) / (1 - M)) * (1 - arg ** (1 - M));
+        c = CJO * arg ** -M;
+      } else {
+        const F1 = (VJ / (1 - M)) * (1 - (1 - FC) ** (1 - M));
+        const F2 = (1 - FC) ** (1 + M);
+        const F3 = 1 - FC * (1 + M);
+        const v0 = FC * VJ;
+        q = CJO * (F1 + (F3 * (vd - v0) + (M / (2 * VJ)) * (vd * vd - v0 * v0)) / F2);
+        c = (CJO / F2) * (F3 + (M * vd) / VJ);
+      }
+    }
+    if (TT > 0) {
+      const { id, gd } = this.evaluate(vd, 0);
+      q += TT * id;
+      c += TT * gd;
+    }
+    return { q, c };
+  }
+
   /** Begrenzt die neue Spannung wie ngspice – im Durchbruch gespiegelt um −BV. */
   #limit(vNew, ctx) {
     const vOld = this.vd;
@@ -110,7 +153,13 @@ export class Diode extends Element {
     if (ctx.initJunctions) vd = this.vCrit;
     else if (this.vd === null) vd = this.#junctionVoltage(x);
     else vd = this.#limit(this.#junctionVoltage(x), ctx);
-    const { id, gd } = this.evaluate(vd, ctx.options.gmin);
+    let { id, gd } = this.evaluate(vd, ctx.options.gmin);
+    if (ctx.mode === 'tran' && this.hasCharge) {
+      // Umladestrom der Sperrschicht-/Diffusionsladung: i = dq/dt = ag0 · q + Vergangenheit
+      const { q, c } = this.charge(vd);
+      id += ctx.ag0 * q + this.history.history(ctx);
+      gd += ctx.ag0 * c;
+    }
     this.vd = vd;
     this.id = id;
     this.gd = gd;
@@ -118,6 +167,26 @@ export class Diode extends Element {
     // Tangente im Punkt vd:  I ≈ gd · U + (id − gd · vd)
     system.stampConductance(a, k, gd);
     system.stampCurrentSource(a, k, id - gd * vd);
+  }
+
+  // ── Zeitbereich: Ladung des pn-Übergangs ──
+
+  initTransient(x, _ctx, useInitialConditions) {
+    const vd = useInitialConditions ? 0 : this.#junctionVoltage(x);
+    this.history.init(this.charge(vd).q, 0);
+    this.inTransient = true;
+  }
+
+  computeState(x, ctx) {
+    if (this.hasCharge) this.history.update(this.charge(this.#junctionVoltage(x)).q, ctx);
+  }
+
+  truncationStep(ctx) {
+    return this.hasCharge ? this.history.truncationStep(ctx) : Infinity;
+  }
+
+  acceptStep() {
+    if (this.hasCharge) this.history.accept();
   }
 
   converged(x, ctx) {
@@ -131,7 +200,8 @@ export class Diode extends Element {
     if (this.model.RS > 0) {
       return (this.potential(x, 0) - at(x, this.internalIndices[0])) / this.model.RS;
     }
-    return this.evaluate(this.#junctionVoltage(x), 0).id;
+    const stationary = this.evaluate(this.#junctionVoltage(x), 0).id;
+    return this.inTransient && this.hasCharge ? stationary + this.history.dqNow : stationary;
   }
 
   #requirePositive(m, key) {
