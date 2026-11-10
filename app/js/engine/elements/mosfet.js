@@ -150,6 +150,10 @@ export class Mosfet extends Element {
     this.vds = v.vds;
     this.op = op;
 
+    // GMIN zwischen D' und S' – in ngspice über die Substrat-Übergänge (Substrat = Source).
+    // Ohne ihn wäre der Drain bei gesperrtem Kanal (z. B. Kaltstart U_GS = U_th) ohne Verbindung.
+    system.stampConductance(d, s, ctx.options.gmin);
+
     // Kanalstrom: in D' hinein, aus S' heraus; Gate führt keinen Gleichstrom
     const p = this.polarity;
     const rowD = [op.dD, op.dG, op.dS];
