@@ -1,0 +1,7 @@
+#!/bin/sh
+# Vor jedem Commit alle Tests ausführen; schlägt einer fehl, wird nicht committet.
+# Einrichten (einmal je Arbeitskopie):  git config core.hooksPath .githooks
+npm test --silent > /dev/null 2>&1 || {
+  echo "Tests schlagen fehl – Commit abgebrochen. Details: npm test" >&2
+  exit 1
+}

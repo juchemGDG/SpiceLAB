@@ -13,6 +13,12 @@ npm test        # Tests des Simulationskerns (Node 20 oder neuer, keine Abhängi
 npm run dev     # Web-App unter http://localhost:8080 starten
 ```
 
+Einmal je Arbeitskopie den Git-Hook einschalten, der vor jedem Commit die Tests ausführt:
+
+```
+git config core.hooksPath .githooks
+```
+
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE).
