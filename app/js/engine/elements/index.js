@@ -11,9 +11,10 @@ import { Inductor } from './inductor.js';
 import { Coupling } from './coupling.js';
 import { Switch } from './switch.js';
 import { Battery } from './battery.js';
+import { Potentiometer } from './potentiometer.js';
 
 export const ELEMENT_TYPES = new Map(
-  [Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor, Inductor, Coupling, Switch, Battery]
+  [Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor, Inductor, Coupling, Switch, Battery, Potentiometer]
     .map((cls) => [cls.type, cls]),
 );
 
