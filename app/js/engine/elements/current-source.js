@@ -11,9 +11,10 @@ export class CurrentSource extends Element {
     this.currentValue = this.requireNumber(spec, 'value', { label: 'Die Stromstärke' });
   }
 
-  stamp(system) {
+  stamp(system, _x, ctx) {
     const [from, to] = this.nodeIndices;
-    system.stampCurrentSource(from, to, this.currentValue);
+    // sourceFactor < 1 nur beim Quellen-Stepping (Konvergenzhilfe, siehe dc.js)
+    system.stampCurrentSource(from, to, this.currentValue * ctx.sourceFactor);
   }
 
   current(_x) {

@@ -35,6 +35,11 @@ export class Element {
     return 0;
   }
 
+  /** true, wenn der Strom nicht proportional zur Spannung ist (Diode, Transistor …). */
+  get isNonlinear() {
+    return false;
+  }
+
   /** Potenzial am Anschluss i aus der Lösung x. */
   potential(x, i) {
     const k = this.nodeIndices[i];
@@ -51,9 +56,27 @@ export class Element {
     throw new Error(`${this.constructor.name}.current fehlt`);
   }
 
-  /** Trägt das Bauteil in das MNA-Gleichungssystem ein. */
-  stamp(_system) {
+  /** Setzt den inneren Zustand vor einer neuen Analyse zurück (z. B. Startwerte der Newton-Iteration). */
+  reset() {}
+
+  /**
+   * Trägt das Bauteil in das MNA-Gleichungssystem ein.
+   * Nichtlineare Bauteile werden um die aktuelle Näherung x linearisiert (Newton-Raphson).
+   * @param {import('../mna.js').MnaSystem} _system
+   * @param {Float64Array} _x aktuelle Näherungslösung
+   * @param {object} _ctx Rechenkontext (Toleranzen, Quellenfaktor …, siehe newton.js)
+   */
+  stamp(_system, _x, _ctx) {
     throw new Error(`${this.constructor.name}.stamp fehlt`);
+  }
+
+  /**
+   * Strom-Konvergenzprüfung je Bauteil (wie ngspice): stimmt der Strom, den die Linearisierung
+   * für die neue Lösung vorhersagt, mit dem Strom am Linearisierungspunkt überein?
+   * Lineare Bauteile sind immer konvergiert.
+   */
+  converged(_x, _ctx) {
+    return true;
   }
 
   /** Prüft, ob ein Kennwert eine endliche Zahl ist (und optional größer als 0). */

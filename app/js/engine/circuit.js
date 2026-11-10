@@ -61,6 +61,11 @@ export class Circuit {
     return this.nodeNames.length;
   }
 
+  /** true, sobald ein Bauteil nichtlinear ist – dann wird iteriert (Newton-Raphson). */
+  get isNonlinear() {
+    return this.elements.some((el) => el.isNonlinear);
+  }
+
   /** Bauteil, dem der Zweigstrom mit dieser Nummer gehört. */
   elementOfBranch(unknown) {
     return this.elements.find((el) => el.branchIndices.includes(unknown));

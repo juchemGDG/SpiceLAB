@@ -78,6 +78,14 @@ export class MnaSystem {
     this.addToRhs(branch, voltage);
   }
 
+  /**
+   * Leitwert g von jedem Knoten nach Masse (nur für Gmin-Stepping, siehe dc.js):
+   * macht das System gutmütiger, verfälscht aber das Ergebnis – wird am Ende auf 0 zurückgefahren.
+   */
+  addNodeDiagonal(g) {
+    for (let i = 0; i < this.nodeCount; i++) this.A[i][i] += g;
+  }
+
   /** Löst das Gleichungssystem und liefert alle Unbekannten (Potenziale, dann Zweigströme). */
   solve() {
     return solveLinear(this.A, this.b);

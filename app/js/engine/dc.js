@@ -1,29 +1,33 @@
 // Arbeitspunkt (DC-Analyse): alle Potenziale, Spannungen, Ströme und Leistungen
 // im eingeschwungenen Zustand mit Gleichspannung.
 //
-// Ablauf: Schaltung aufbauen → jedes Bauteil stempelt → Gleichungssystem lösen → Werte ablesen.
-// (Für nichtlineare Bauteile wie Dioden wird daraus in Phase 2 eine Newton-Iteration.)
+// Ablauf: Schaltung aufbauen → Newton-Iteration (jedes Bauteil stempelt, Gleichungssystem lösen,
+// wiederholen bis konvergiert) → Werte ablesen. Lineare Schaltungen brauchen nur einen Durchlauf.
 
 import { Circuit } from './circuit.js';
 import { CircuitError } from './errors.js';
 import { MnaSystem } from './mna.js';
 import { SingularMatrixError } from './linalg.js';
+import { createContext, newtonSolve } from './newton.js';
 
 /**
  * @param {object|Circuit} netlist Netzliste (siehe circuit.js) oder fertige Schaltung
+ * @param {object} [options] Toleranzen, siehe SIM_DEFAULTS in newton.js
  * @returns {{
  *   potentials: Record<string, number>,
- *   elements: Record<string, {U: number, I: number, P: number}>
- * }} Potenziale je Knoten (Masse = 0 V) und U, I, P je Bauteil
+ *   elements: Record<string, {U: number, I: number, P: number}>,
+ *   iterations: number
+ * }} Potenziale je Knoten (Masse = 0 V), U, I, P je Bauteil, Anzahl der Newton-Schritte
  */
-export function operatingPoint(netlist) {
+export function operatingPoint(netlist, options = {}) {
   const circuit = netlist instanceof Circuit ? netlist : new Circuit(netlist);
   const system = new MnaSystem(circuit.nodeCount, circuit.branchCount);
-  for (const el of circuit.elements) el.stamp(system);
+  const ctx = createContext(options);
+  for (const el of circuit.elements) el.reset();
 
-  let x;
+  let x, iterations;
   try {
-    x = system.solve();
+    ({ x, iterations } = newtonSolve(circuit, system, ctx));
   } catch (err) {
     if (err instanceof SingularMatrixError) throw explainSingular(circuit, err.index);
     throw err;
@@ -38,7 +42,7 @@ export function operatingPoint(netlist) {
     const I = el.current(x);
     elements[el.name] = { U, I, P: U * I };
   }
-  return { potentials, elements };
+  return { potentials, elements, iterations };
 }
 
 /** Übersetzt „Matrix singulär“ in eine Meldung, mit der man die Schaltung reparieren kann. */

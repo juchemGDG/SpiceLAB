@@ -15,9 +15,10 @@ export class VoltageSource extends Element {
     return 1;
   }
 
-  stamp(system) {
+  stamp(system, _x, ctx) {
     const [plus, minus] = this.nodeIndices;
-    system.stampVoltageSource(plus, minus, this.branchIndices[0], this.voltageValue);
+    // sourceFactor < 1 nur beim Quellen-Stepping (Konvergenzhilfe, siehe dc.js)
+    system.stampVoltageSource(plus, minus, this.branchIndices[0], this.voltageValue * ctx.sourceFactor);
   }
 
   /** Strom in der Quelle von plus nach minus (gibt die Quelle Energie ab, ist er negativ). */
