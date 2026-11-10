@@ -39,7 +39,11 @@ export class ConvergenceError extends Error {
 export function createContext(options = {}) {
   return {
     options: { ...SIM_DEFAULTS, ...options },
+    mode: 'dc', // 'dc' (Arbeitspunkt) oder 'tran' (Zeitschritt)
     time: 0, // Simulationszeit in s (Arbeitspunkt: 0)
+    order: 1, // Ordnung des Integrationsverfahrens (1 Euler, 2 Trapez) – nur 'tran'
+    ag0: 0, // Integrationskoeffizient 1/h bzw. 2/h – nur 'tran'
+    deltaOld: [0, 0, 0], // letzte Schrittweiten [h_n, h_{n−1}, h_{n−2}] – nur 'tran'
     sourceFactor: 1, // Faktor für alle Quellen (Quellen-Stepping)
     diagonalGmin: 0, // zusätzlicher Leitwert jedes Knotens nach Masse (Gmin-Stepping)
     limited: false, // wird von Bauteilen gesetzt, die ihre Spannung begrenzen mussten

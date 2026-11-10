@@ -80,6 +80,25 @@ export class Element {
     return Infinity;
   }
 
+  // ── Zeitbereich (nur Speicherbauteile wie Kondensator und Spule brauchen diese Methoden) ──
+
+  /**
+   * Anfangszustand für die Zeitanalyse aus dem Arbeitspunkt x – oder aus den Anfangsbedingungen
+   * des Bauteils (z. B. Kondensator entladen), wenn useInitialConditions gesetzt ist.
+   */
+  initTransient(_x, _ctx, _useInitialConditions) {}
+
+  /** Berechnet nach einem konvergierten Zeitschritt den neuen Zustand (q_n, dq_n). */
+  computeState(_x, _ctx) {}
+
+  /** Größte Schrittweite nach der Fehlerschätzung (Infinity: keine Einschränkung). */
+  truncationStep(_ctx) {
+    return Infinity;
+  }
+
+  /** Der Zeitschritt wurde angenommen: Zustand wird Vergangenheit. */
+  acceptStep() {}
+
   /** Setzt den inneren Zustand vor einer neuen Analyse zurück (z. B. Startwerte der Newton-Iteration). */
   reset() {}
 
