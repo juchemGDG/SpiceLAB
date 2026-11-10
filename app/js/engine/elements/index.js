@@ -15,11 +15,12 @@ import { Potentiometer } from './potentiometer.js';
 import { Ldr, Ntc } from './sensors.js';
 import { SolarCell } from './solar-cell.js';
 import { Bjt } from './bjt.js';
+import { Mosfet } from './mosfet.js';
 
 export const ELEMENT_TYPES = new Map(
   [
     Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor, Inductor, Coupling, Switch, Battery,
-    Potentiometer, Ldr, Ntc, SolarCell, Bjt,
+    Potentiometer, Ldr, Ntc, SolarCell, Bjt, Mosfet,
   ].map((cls) => [cls.type, cls]),
 );
 
