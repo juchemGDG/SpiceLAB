@@ -70,6 +70,16 @@ export class Element {
     throw new Error(`${this.constructor.name}.current fehlt`);
   }
 
+  /** Nächster Zeitpunkt nach t, an dem sich das Bauteil sprunghaft ändert (Haltepunkt der Zeitanalyse). */
+  nextBreakpoint(_t) {
+    return Infinity;
+  }
+
+  /** Größte sinnvolle Schrittweite der Zeitanalyse für dieses Bauteil. */
+  maxStep() {
+    return Infinity;
+  }
+
   /** Setzt den inneren Zustand vor einer neuen Analyse zurück (z. B. Startwerte der Newton-Iteration). */
   reset() {}
 

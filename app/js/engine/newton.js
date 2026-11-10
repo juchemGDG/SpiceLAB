@@ -36,6 +36,7 @@ export class ConvergenceError extends Error {
 export function createContext(options = {}) {
   return {
     options: { ...SIM_DEFAULTS, ...options },
+    time: 0, // Simulationszeit in s (Arbeitspunkt: 0)
     sourceFactor: 1, // Faktor für alle Quellen (Quellen-Stepping)
     diagonalGmin: 0, // zusätzlicher Leitwert jedes Knotens nach Masse (Gmin-Stepping)
     limited: false, // wird von Bauteilen gesetzt, die ihre Spannung begrenzen mussten
