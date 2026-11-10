@@ -65,6 +65,8 @@ docs/                Plan, Lehrplanbezug, Design
    offen: nicht angeschlossene Bauteile im Editor herausfiltern statt „hängt in der Luft“ zu melden (Phase 6)
 2. Nichtlinear: Newton-Raphson mit Konvergenzhilfen (Dämpfung, Gmin, Quellenrampe);
    Diode, LED (nach Farbe), Z-Diode, Glühlampe (temperaturabhängiger Widerstand)
+   <- erledigt bis auf Glühlampe: Newton mit ngspice-Kriterien, pnjlim, Gmin-/Quellen-Stepping,
+      Diode (IS, N, RS, BV, IBV, NBV), Bibliothek 1N4148/1N4001, LEDs 5 Farben, Z-Dioden 3,3–12 V
 3. Zeitverlauf (Transient): Kondensator, Spule, gekoppelte Spulen (Transformator), Trapez-/Euler-Verfahren,
    Schrittweitensteuerung; Quellen Sinus/Rechteck/Puls, zeitgesteuerte Schalter
 4. Bauteilbibliothek: Akku/Batterie/Netzgerät mit Innenwiderstand, Solarzelle, Schalter, Taster, Poti, LDR, NTC,
