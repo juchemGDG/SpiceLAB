@@ -48,8 +48,21 @@ export class Circuit {
       throw new CircuitError('Die Schaltung hat keinen Massepunkt (0 V). Lege einen Anschluss auf Masse.');
     }
     this.nodeIndex = index;
+    this.externalNodeCount = this.nodeNames.length;
 
-    // 2. Zweigströme hinter den Knoten nummerieren
+    // 2. Innere Knoten der Bauteilmodelle (z. B. zwischen Bahnwiderstand und pn-Übergang).
+    //    Sie heißen „Bauteil:Bezeichnung“ und werden nicht als Ergebnis angezeigt.
+    this.internalOwner = new Map();
+    for (const el of this.elements) {
+      el.internalIndices = el.internalNodes.map((label) => {
+        const i = this.nodeNames.length;
+        this.nodeNames.push(`${el.name}:${label}`);
+        this.internalOwner.set(i, el);
+        return i;
+      });
+    }
+
+    // 3. Zweigströme hinter den Knoten nummerieren
     let next = this.nodeNames.length;
     for (const el of this.elements) {
       el.branchIndices = Array.from({ length: el.branchCount }, () => next++);

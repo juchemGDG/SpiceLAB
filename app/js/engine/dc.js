@@ -34,7 +34,7 @@ export function operatingPoint(netlist, options = {}) {
   }
 
   const potentials = { 0: 0 };
-  circuit.nodeNames.forEach((name, i) => (potentials[name] = x[i]));
+  for (let i = 0; i < circuit.externalNodeCount; i++) potentials[circuit.nodeNames[i]] = x[i];
 
   const elements = {};
   for (const el of circuit.elements) {
@@ -47,6 +47,10 @@ export function operatingPoint(netlist, options = {}) {
 
 /** Übersetzt „Matrix singulär“ in eine Meldung, mit der man die Schaltung reparieren kann. */
 function explainSingular(circuit, unknown) {
+  if (circuit.internalOwner.has(unknown)) {
+    const name = circuit.internalOwner.get(unknown).name;
+    return new CircuitError(`Das Bauteil „${name}“ ist nicht richtig angeschlossen.`, { elements: [name] });
+  }
   if (unknown < circuit.nodeCount) {
     const node = circuit.nodeNames[unknown];
     const attached = circuit.elements.filter((el) => el.nodes.includes(node)).map((el) => el.name);

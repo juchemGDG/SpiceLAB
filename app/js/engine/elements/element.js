@@ -26,13 +26,27 @@ export class Element {
     }
     this.name = name;
     this.nodes = nodes.map(String);
-    this.nodeIndices = []; // wird von Circuit gesetzt
-    this.branchIndices = []; // wird von Circuit gesetzt
+    this.nodeIndices = []; // werden von Circuit gesetzt
+    this.internalIndices = [];
+    this.branchIndices = [];
   }
 
   /** Wie viele Zweigströme das Bauteil als zusätzliche Unbekannte braucht. */
   get branchCount() {
     return 0;
+  }
+
+  /**
+   * Bezeichnungen der inneren Knoten, die das Modell braucht (z. B. ['intern'] bei einer Diode
+   * mit Bahnwiderstand). Circuit vergibt dafür Nummern in `internalIndices`.
+   */
+  get internalNodes() {
+    return [];
+  }
+
+  /** Wert einer Unbekannten aus der Lösung x (Masse = 0). */
+  static at(x, index) {
+    return index === GROUND ? 0 : x[index];
   }
 
   /** true, wenn der Strom nicht proportional zur Spannung ist (Diode, Transistor …). */

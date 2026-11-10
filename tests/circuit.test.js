@@ -22,6 +22,25 @@ test('Knoten und Zweigströme werden nummeriert', () => {
   assert.equal(c.elementOfBranch(2).name, 'V1');
 });
 
+test('innere Knoten liegen hinter den äußeren, vor den Zweigströmen', async () => {
+  const { ELEMENT_TYPES } = await import('../app/js/engine/elements/index.js');
+  const { Resistor } = await import('../app/js/engine/elements/resistor.js');
+  class WithInternal extends Resistor {
+    static type = 'TEST_INTERN';
+    get internalNodes() { return ['intern']; }
+  }
+  ELEMENT_TYPES.set(WithInternal.type, WithInternal);
+  try {
+    const c = new Circuit({ elements: [...divider.elements, { type: 'TEST_INTERN', name: 'T1', nodes: ['mitte', '0'], value: 1 }] });
+    assert.equal(c.externalNodeCount, 2);
+    assert.deepEqual(c.nodeNames, ['oben', 'mitte', 'T1:intern']);
+    assert.deepEqual(c.elements[3].internalIndices, [2]);
+    assert.deepEqual(c.elements[0].branchIndices, [3]);
+  } finally {
+    ELEMENT_TYPES.delete(WithInternal.type);
+  }
+});
+
 function assertCircuitError(netlist, pattern) {
   assert.throws(() => new Circuit(netlist), (e) => e instanceof CircuitError && pattern.test(e.message));
 }
