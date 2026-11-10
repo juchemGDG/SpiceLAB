@@ -3,11 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SpiceLab</title>
+  <title>SpiceLab – Schaltungssimulation</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <!-- Platzhalter: Der Editor folgt in Phase 6 (siehe docs/PLAN.md). -->
-  <h1>SpiceLab</h1>
-  <p>Schaltungssimulation für den Unterricht – in Entwicklung.</p>
+<div id="app">
+  <!-- ═══════ Seitenleiste: Bauteile ═══════ -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <img id="sidebar-logo" src="favicon.svg" width="40" height="40" alt="">
+      <span>
+        <span id="sidebar-title">SpiceLab</span>
+        <span id="sidebar-subtitle">Schaltungen simulieren</span>
+      </span>
+    </div>
+    <div class="section-label">BAUTEILE</div>
+    <div id="palette"></div>
+    <button id="btn-help" class="btn-help-side">Hilfe &amp; Bedienung</button>
+  </aside>
+
+  <!-- ═══════ Arbeitsbereich ═══════ -->
+  <main id="main">
+    <div id="topbar">
+      <button id="sidebar-toggle" title="Bauteile">☰</button>
+      <span id="breadcrumb">Neue Schaltung</span>
+      <button id="btn-simulate" class="btn-accent" title="Schaltung berechnen (F5)">▶ Simulieren</button>
+      <nav id="menubar">
+        <button id="btn-wire" class="btn-menu" title="Leitung zeichnen (W)">Leitung</button>
+        <span class="btn-group">
+          <button id="btn-rot" class="btn-menu" title="Markierte Bauteile drehen (R)">⟳ Drehen</button>
+          <button id="btn-mir" class="btn-menu" title="Markierte Bauteile spiegeln (M)">⇋ Spiegeln</button>
+        </span>
+        <span class="btn-group">
+          <button id="btn-undo" class="btn-menu" title="Rückgängig (Strg/⌘+Z)">↶</button>
+          <button id="btn-redo" class="btn-menu" title="Wiederholen (Strg/⌘+Y)">↷</button>
+        </span>
+        <button id="btn-fit" class="btn-menu" title="Zeichnung einpassen (0)">Ansicht anpassen</button>
+        <button id="btn-new" class="btn-menu">Neu</button>
+        <button id="btn-load" class="btn-menu">Laden</button>
+        <button id="btn-save" class="btn-menu">Speichern</button>
+      </nav>
+      <button id="btn-delete" class="btn-danger" title="Markierte Elemente löschen (Entf)" disabled>🗑 Löschen</button>
+      <button id="menu-toggle" title="Menü">⋮</button>
+      <span id="status">Bereit</span>
+    </div>
+    <div id="canvas-container">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="zoom-ctl">
+        <button id="zoom-out" title="Verkleinern (−)">−</button>
+        <button id="zoom-pct" title="Auf 100 % zurücksetzen">100 %</button>
+        <button id="zoom-in" title="Vergrößern (+)">+</button>
+      </div>
+    </div>
+    <p class="footer-lizenz">
+      Dieses Werkzeug wurde für <a href="https://mint-checker.de">mint-checker.de</a> entwickelt und steht unter der
+      <a href="https://opensource.org/license/mit">MIT-Lizenz</a>. Bei der Entwicklung wurden KI-Werkzeuge
+      unterstützend eingesetzt; der Code wurde von den Autoren geprüft und angepasst.
+      Die Simulation rechnet nach dem SPICE-Verfahren; Abweichungen von realen Bauteilen sind in
+      „Hilfe &amp; Bedienung“ beschrieben.
+      <a href="https://mint-checker.de/datenschutz.php" target="_blank" rel="noopener noreferrer">Datenschutz</a> ·
+      <a href="https://mint-checker.de/impressum.php" target="_blank" rel="noopener noreferrer">Impressum</a>
+    </p>
+  </main>
+</div>
+<input type="file" id="file-in" accept=".json,application/json" hidden>
 </body>
 </html>
