@@ -26,7 +26,7 @@
 
 import { Element } from './element.js';
 import { CircuitError } from '../errors.js';
-import { thermalVoltage, criticalVoltage, limitJunctionVoltage } from '../junction.js';
+import { thermalVoltage, criticalVoltage, limitJunctionVoltage, depletionCharge } from '../junction.js';
 import { ChargeHistory } from '../integration.js';
 
 const at = Element.at;
@@ -99,28 +99,10 @@ export class Diode extends Element {
     return { id: id + gmin * vd, gd: gd + gmin };
   }
 
-  /**
-   * Ladung q und Kapazität dq/dU des pn-Übergangs bei der Spannung vd (Formeln wie SPICE).
-   * Oberhalb von FC·VJ würde CJO/(1 − U/VJ)^M gegen unendlich gehen; dort wird linear fortgesetzt.
-   */
+  /** Ladung q und Kapazität dq/dU des pn-Übergangs bei der Spannung vd (Sperrschicht + Diffusion). */
   charge(vd) {
     const { CJO, VJ, M, FC, TT } = this.model;
-    let q = 0;
-    let c = 0;
-    if (CJO > 0) {
-      if (vd < FC * VJ) {
-        const arg = 1 - vd / VJ;
-        q = ((CJO * VJ) / (1 - M)) * (1 - arg ** (1 - M));
-        c = CJO * arg ** -M;
-      } else {
-        const F1 = (VJ / (1 - M)) * (1 - (1 - FC) ** (1 - M));
-        const F2 = (1 - FC) ** (1 + M);
-        const F3 = 1 - FC * (1 + M);
-        const v0 = FC * VJ;
-        q = CJO * (F1 + (F3 * (vd - v0) + (M / (2 * VJ)) * (vd * vd - v0 * v0)) / F2);
-        c = (CJO / F2) * (F3 + (M * vd) / VJ);
-      }
-    }
+    let { q, c } = depletionCharge(vd, CJO, VJ, M, FC);
     if (TT > 0) {
       const { id, gd } = this.evaluate(vd, 0);
       q += TT * id;

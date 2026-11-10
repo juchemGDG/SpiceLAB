@@ -23,6 +23,28 @@ export function criticalVoltage(nVt, saturationCurrent) {
 }
 
 /**
+ * Sperrschichtladung und -kapazität eines pn-Übergangs bei der Spannung v (Formeln wie SPICE):
+ *   C = CJ / (1 − v/VJ)^M                    für v < FC·VJ
+ *   darüber linear fortgesetzt (sonst ginge C bei v → VJ gegen unendlich)
+ * @returns {{q: number, c: number}} Ladung in C und Kapazität dq/dv in F
+ */
+export function depletionCharge(v, CJ, VJ, M, FC) {
+  if (!(CJ > 0)) return { q: 0, c: 0 };
+  if (v < FC * VJ) {
+    const arg = 1 - v / VJ;
+    return { q: ((CJ * VJ) / (1 - M)) * (1 - arg ** (1 - M)), c: CJ * arg ** -M };
+  }
+  const F1 = (VJ / (1 - M)) * (1 - (1 - FC) ** (1 - M));
+  const F2 = (1 - FC) ** (1 + M);
+  const F3 = 1 - FC * (1 + M);
+  const v0 = FC * VJ;
+  return {
+    q: CJ * (F1 + (F3 * (v - v0) + (M / (2 * VJ)) * (v * v - v0 * v0)) / F2),
+    c: (CJ / F2) * (F3 + (M * v) / VJ),
+  };
+}
+
+/**
  * Spannungsbegrenzung am pn-Übergang (ngspice: DEVpnjlim).
  *
  * Problem: Der Diodenstrom wächst exponentiell. Schlägt Newton eine Spannung von z. B. 5 V an einer
