@@ -18,11 +18,12 @@ import { Bjt } from './bjt.js';
 import { Mosfet } from './mosfet.js';
 import { OpAmp } from './opamp.js';
 import { ChangeoverSwitch } from './changeover-switch.js';
+import { Motor } from './motor.js';
 
 export const ELEMENT_TYPES = new Map(
   [
     Resistor, VoltageSource, CurrentSource, Diode, Lamp, Capacitor, Inductor, Coupling, Switch, Battery,
-    Potentiometer, Ldr, Ntc, SolarCell, Bjt, Mosfet, OpAmp, ChangeoverSwitch,
+    Potentiometer, Ldr, Ntc, SolarCell, Bjt, Mosfet, OpAmp, ChangeoverSwitch, Motor,
   ].map((cls) => [cls.type, cls]),
 );
 
