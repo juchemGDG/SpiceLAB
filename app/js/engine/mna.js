@@ -79,6 +79,31 @@ export class MnaSystem {
   }
 
   /**
+   * Tangenten-Stempel für ein nichtlineares Bauteil mit beliebig vielen Anschlüssen.
+   *
+   * I_k = Strom, der am Anschluss k vom Knoten in das Bauteil hineinfließt (k = 0 … n−1).
+   * Um den Punkt V0 (Anschlusspotenziale) linearisiert:
+   *   I_k ≈ I0_k + Σ_j J_kj · (V_j − V0_j)          J_kj = ∂I_k/∂V_j
+   * Der von V abhängige Teil kommt in die Matrix, der Rest als Konstante auf die rechte Seite.
+   *
+   * @param {number[]} nodes Knotennummern der Anschlüsse
+   * @param {number[]} I0 Ströme im Linearisierungspunkt
+   * @param {number[][]} J Ableitungen ∂I_k/∂V_j
+   * @param {number[]} V0 Anschlusspotenziale im Linearisierungspunkt
+   */
+  stampLinearized(nodes, I0, J, V0) {
+    for (let k = 0; k < nodes.length; k++) {
+      let constant = I0[k];
+      for (let j = 0; j < nodes.length; j++) {
+        if (J[k][j] === 0) continue;
+        this.addToMatrix(nodes[k], nodes[j], J[k][j]);
+        constant -= J[k][j] * V0[j];
+      }
+      this.addToRhs(nodes[k], -constant);
+    }
+  }
+
+  /**
    * Leitwert g von jedem Knoten nach Masse (nur für Gmin-Stepping, siehe dc.js):
    * macht das System gutmütiger, verfälscht aber das Ergebnis – wird am Ende auf 0 zurückgefahren.
    */

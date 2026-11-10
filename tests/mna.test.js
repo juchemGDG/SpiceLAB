@@ -32,6 +32,27 @@ test('Stromquelle speist in den Ziel-Knoten ein', () => {
   close(sys.solve()[0], 2);
 });
 
+test('Tangenten-Stempel: ein Leitwert als Spezialfall ergibt denselben Eintrag', () => {
+  // Leitwert g zwischen Knoten 0 und 1: I_0 = g·(V0 − V1), I_1 = −I_0
+  const g = 0.25;
+  const a = new MnaSystem(2, 0);
+  a.stampConductance(0, 1, g);
+  const b = new MnaSystem(2, 0);
+  const V0 = [3, 1]; // beliebiger Linearisierungspunkt – bei linearen Bauteilen egal
+  b.stampLinearized([0, 1], [g * 2, -g * 2], [[g, -g], [-g, g]], V0);
+  assert.deepEqual(b.A.map((r) => [...r]), a.A.map((r) => [...r]));
+  assert.deepEqual([...b.b], [0, 0]);
+});
+
+test('Tangenten-Stempel: gesteuerte Stromquelle (Transistor-ähnlich) mit Masseanschluss', () => {
+  // Bauteil an Knoten 0 (Steuerung) und Masse: zieht I = 2·V0² aus Knoten 0, gespeist von 1 A
+  // Gleichung 2·V² = 1 → V = √0,5; ein Newton-Schritt ab V = 1 liefert 0,75
+  const sys = new MnaSystem(1, 0);
+  sys.stampCurrentSource(GROUND, 0, 1);
+  sys.stampLinearized([0, GROUND], [2, -2], [[4, -4], [-4, 4]], [1, 0]);
+  close(sys.solve()[0], 0.75);
+});
+
 test('clear setzt alles zurück', () => {
   const sys = new MnaSystem(1, 1);
   sys.stampVoltageSource(0, GROUND, 1, 5);
