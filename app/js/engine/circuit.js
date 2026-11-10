@@ -26,6 +26,8 @@ export class Circuit {
     }
     this.elements = specs.map(createElement);
     this.#checkUniqueNames();
+    const byName = new Map(this.elements.map((el) => [el.name, el]));
+    for (const el of this.elements) el.link(byName);
 
     // 1. Knoten nummerieren (Masse bekommt GROUND)
     this.nodeNames = [];

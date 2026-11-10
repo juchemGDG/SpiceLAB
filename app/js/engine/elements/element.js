@@ -73,6 +73,9 @@ export class Element {
     throw new Error(`${this.constructor.name}.current fehlt`);
   }
 
+  /** Verknüpft das Bauteil mit anderen Bauteilen über deren Namen (z. B. Kopplung zweier Spulen). */
+  link(_elementsByName) {}
+
   /** Nächster Zeitpunkt nach t, an dem sich das Bauteil sprunghaft ändert (Haltepunkt der Zeitanalyse). */
   nextBreakpoint(_t) {
     return Infinity;
