@@ -64,6 +64,16 @@ test('Energieerhaltung und Knotenregel in einem verzweigten Netz', () => {
   close(r.elements.R1.I, r.elements.R2.I + r.elements.R3.I);
 });
 
+test('Knoten nur über sperrende Diode angebunden, daneben 1 mΩ: kein Fehlalarm', () => {
+  const r = operatingPoint({
+    elements: [
+      V('V1', 'a', '0', 5), R('R1', 'a', 'b', 0.001), R('R2', 'b', '0', 1),
+      { type: 'D', name: 'D1', nodes: ['x', 'b'], model: { IS: 1e-14 } }, // sperrt, x hängt nur hier
+    ],
+  });
+  assert.ok(Number.isFinite(r.potentials.x));
+});
+
 test('Fehler: Teil der Schaltung hängt in der Luft', () => {
   assert.throws(
     () => operatingPoint({ elements: [V('V1', 'a', '0', 5), R('R1', 'a', '0', 100), R('R2', 'x', 'y', 100)] }),

@@ -22,8 +22,10 @@ export function createMatrix(n) {
   return Array.from({ length: n }, () => new Float64Array(n));
 }
 
-// Ein Pivot gilt als null, wenn er kleiner ist als dieser Anteil des größten Matrixeintrags.
-const RELATIVE_TOLERANCE = 1e-14;
+// Ein Pivot gilt als null, wenn sein Betrag nicht größer ist als PIVTOL (absoluter Wert wie in ngspice).
+// Bewusst nicht relativ zum größten Eintrag: Ein Knoten, der nur über eine sperrende Diode (GMIN = 1 pS)
+// angebunden ist, darf nicht als „singulär“ gelten, nur weil woanders ein 1-mΩ-Widerstand (1000 S) sitzt.
+export const PIVTOL = 1e-13;
 
 /**
  * Löst A · x = b. A und b werden nicht verändert.
@@ -37,10 +39,6 @@ export function solveLinear(A, b) {
   const M = Array.from(A, (row) => Float64Array.from(row)); // Arbeitskopie
   const x = Float64Array.from(b);
 
-  let largest = 0;
-  for (const row of M) for (const v of row) largest = Math.max(largest, Math.abs(v));
-  const tolerance = largest * RELATIVE_TOLERANCE;
-
   // 1. Vorwärts-Elimination: Nullen unterhalb der Diagonalen erzeugen
   for (let k = 0; k < n; k++) {
     // Pivotsuche: betragsgrößter Eintrag in Spalte k ab Zeile k
@@ -48,7 +46,7 @@ export function solveLinear(A, b) {
     for (let i = k + 1; i < n; i++) {
       if (Math.abs(M[i][k]) > Math.abs(M[pivotRow][k])) pivotRow = i;
     }
-    if (!(Math.abs(M[pivotRow][k]) > tolerance)) throw new SingularMatrixError(k);
+    if (!(Math.abs(M[pivotRow][k]) > PIVTOL)) throw new SingularMatrixError(k);
 
     if (pivotRow !== k) {
       [M[k], M[pivotRow]] = [M[pivotRow], M[k]];
