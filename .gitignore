@@ -1,0 +1,12 @@
+# Systemdateien
+.DS_Store
+
+# Node
+node_modules/
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Pakete
+dist/
