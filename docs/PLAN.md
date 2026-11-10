@@ -91,6 +91,11 @@ docs/                Plan, Lehrplanbezug, Design
    Herkunft: BC547B/BC557B-Parameter aus dem Gedächtnis (NXP-Modelle) – in Phase 5 prüfen.
    offen: Summer (aktiver Piezosummer)
 5. Referenztests gegen ngspice, Dokumentation der Modellgrenzen
+   <- erledigt: ngspice 47 (brew), tools/ngspice (Umsetzer + Referenzerzeugung, npm run references),
+      22 Vergleichsschaltungen alle bestanden (Kennlinien < 0,2 %, Zeitverläufe < 0,06 % der Spannweite),
+      Kennlinien-Analyse (DC-Sweep) dafür vorgezogen, docs/MODELLE.md.
+      BC547B/BC557B: Werte = Philips-Modelle der Schwestertypen BC546B/BC556B (Original nicht abrufbar).
+   offen: OPV gegen ein Hersteller-Makromodell vergleichen
 6. Editor im SchaltLab-/PAP-Stil: Bauteilkarten, Raster, Leitungen, Drehen/Spiegeln, Eigenschaften,
    Rückgängig, Speichern/Laden (JSON), Bildexport
 7. Messen und Anzeigen: Volt-/Amperemeter als Bauteile (mit Innenwiderstand), Werte am Bauteil,
