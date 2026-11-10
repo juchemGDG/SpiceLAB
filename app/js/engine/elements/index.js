@@ -4,9 +4,10 @@ import { CircuitError } from '../errors.js';
 import { Resistor } from './resistor.js';
 import { VoltageSource } from './voltage-source.js';
 import { CurrentSource } from './current-source.js';
+import { Diode } from './diode.js';
 
 export const ELEMENT_TYPES = new Map(
-  [Resistor, VoltageSource, CurrentSource].map((cls) => [cls.type, cls]),
+  [Resistor, VoltageSource, CurrentSource, Diode].map((cls) => [cls.type, cls]),
 );
 
 /** Erzeugt ein Bauteil aus seiner Beschreibung { type, name, nodes, … }. */
