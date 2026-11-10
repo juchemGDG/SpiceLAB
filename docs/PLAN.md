@@ -43,8 +43,9 @@ docs/                Plan, Lehrplanbezug, Design
 ```
 
 ## Phasen
-0. Vorbereitung: Repo, Plan, Lehrplanbezug, Design-Tokens, Testgerüst
-1. Simulationskern linear (DC): Gleichungslöser, MNA, Widerstand, Spannungs- und Stromquelle, Arbeitspunkt
+0. Vorbereitung: Repo, Plan, Lehrplanbezug, Design-Tokens, Testgerüst      <- erledigt
+1. Simulationskern linear (DC): Gleichungslöser, MNA, Widerstand, Spannungs- und Stromquelle, Arbeitspunkt   <- erledigt
+   offen: nicht angeschlossene Bauteile im Editor herausfiltern statt „hängt in der Luft“ zu melden (Phase 6)
 2. Nichtlinear: Newton-Raphson mit Konvergenzhilfen (Dämpfung, Gmin, Quellenrampe);
    Diode, LED (nach Farbe), Z-Diode, Glühlampe (temperaturabhängiger Widerstand)
 3. Zeitverlauf (Transient): Kondensator, Spule, Trapez-/Euler-Verfahren, Schrittweitensteuerung;
