@@ -1,14 +1,29 @@
 // Neu, Laden und Speichern (JSON-Datei). Im Browser über Download bzw. Dateiauswahl;
-// die Desktop-Version (Tauri) bekommt später echte Dateidialoge.
+// die Desktop-Version (Tauri) nutzt die Dateidialoge des Betriebssystems zum Speichern.
 
 import { dialog } from './dialog.js';
 import { CATALOG_BY_ID } from '../editor/catalog.js';
 
 export const FILE_SUFFIX = '.spicelab.json';
 
-/** Datei herunterladen lassen. */
-export function download(name, text, mime = 'application/json') {
-  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+/**
+ * Datei speichern. Im Browser als Download; in der Desktop-Version (Tauri) über den Dateidialog des
+ * Betriebssystems, weil der WebView Downloads nicht wie ein Browser behandelt.
+ * @param {string} name   Vorschlag für den Dateinamen
+ * @param {string|Blob} data
+ * @returns {Promise<boolean>} false, wenn die Person den Dialog abgebrochen hat
+ */
+export async function download(name, data, mime = 'application/json') {
+  const tauri = window.__TAURI__;
+  if (tauri?.dialog && tauri?.fs) {
+    const extension = name.slice(name.lastIndexOf('.') + 1);
+    const path = await tauri.dialog.save({ defaultPath: name, filters: [{ name: extension.toUpperCase(), extensions: [extension] }] });
+    if (!path) return false;
+    const bytes = new Uint8Array(await new Blob([data], { type: mime }).arrayBuffer());
+    await tauri.fs.writeFile(path, bytes);
+    return true;
+  }
+  const url = URL.createObjectURL(new Blob([data], { type: mime }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
@@ -16,6 +31,7 @@ export function download(name, text, mime = 'application/json') {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
 }
 
 /** Datei auswählen und als Text lesen (null bei Abbruch). */

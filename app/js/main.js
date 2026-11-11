@@ -313,8 +313,8 @@ on('btn-png', async () => {
   if (svg) download(`${docName}.png`, await svgToPng(svg), 'image/png');
 });
 
-on('btn-save', () => {
-  download(`${docName}${FILE_SUFFIX}`, JSON.stringify(doc.toJSON(), null, 1));
+on('btn-save', async () => {
+  if (!(await download(`${docName}${FILE_SUFFIX}`, JSON.stringify(doc.toJSON(), null, 1)))) return; // Dialog abgebrochen
   savedKey = docKey();
   setStatus(`Gespeichert als „${docName}${FILE_SUFFIX}“`);
 });

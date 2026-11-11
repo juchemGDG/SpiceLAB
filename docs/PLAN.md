@@ -111,7 +111,8 @@ docs/                Plan, Lehrplanbezug, Design
    <- teilweise (vorgezogen auf Wunsch): Messpunkte/Prüfspitzen mit Potenzial gegen Masse statt Werten an
       jedem Bauteil (Werte auf Wunsch, Hinweis beim Überfahren), Oszilloskop mit Messpunkten als Kanälen,
       Zeitlupe (Cursor), Live-Neuberechnung.
-   offen: Volt-/Amperemeter, Kennlinienschreiber, Stromrichtung, Frequenzgang
+   <- erledigt (11.11.2026): Volt-/Amperemeter, Kennlinienschreiber, Frequenzgang (Messung wie im Labor),
+      Stromrichtung (Pfeile), Fototransistor (Richtwert ungeprüft), aktiver Summer mit Ton.
 8. Unterrichtshilfen: Beispielschaltungen je Klassenstufe, Hilfe & Bedienung, Fehlermeldungen in Schülersprache
 9. Desktop (Tauri 2), Paketierung macOS/Windows/Linux, GitHub-Workflow, Web-Auslieferung,
    Einbettung `?embed=1` (Protokoll wie PAP-Editor/SchaltLab)
