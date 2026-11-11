@@ -8,6 +8,7 @@ import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
 import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies } from './ui/results.js';
 import { Scope } from './ui/scope.js';
+import { exportSVG, svgToPng } from './ui/export.js';
 import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
 import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
@@ -232,6 +233,24 @@ function resetTo(data, name) {
 on('btn-new', async () => {
   if (await confirmDiscard(dirty())) resetTo({ comps: [], wires: [], n: 0 }, 'Neue Schaltung');
 });
+/** Bild der Zeichnung (mit Messwerten, falls simuliert). */
+function drawingSVG() {
+  return exportSVG(doc, {
+    junctions: buildNetlist(doc).junctions,
+    probeValues: app.probeValues,
+    underlay: app.underlay,
+    annotations: app.annotations,
+  });
+}
+on('btn-svg', () => {
+  const svg = drawingSVG();
+  if (svg) download(`${docName}.svg`, svg.text, 'image/svg+xml');
+});
+on('btn-png', async () => {
+  const svg = drawingSVG();
+  if (svg) download(`${docName}.png`, await svgToPng(svg), 'image/png');
+});
+
 on('btn-save', () => {
   download(`${docName}${FILE_SUFFIX}`, JSON.stringify(doc.toJSON(), null, 1));
   savedKey = docKey();

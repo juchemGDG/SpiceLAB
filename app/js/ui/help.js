@@ -55,7 +55,8 @@ const HELP = `
     <li><b>Zoomen:</b> Mausrad, Trackpad (zwei Finger spreizen), Tablet (zwei Finger) oder die Knöpfe unten rechts; <kbd>0</kbd> passt die Ansicht an.</li>
     <li><b>Verschieben:</b> <kbd>Leertaste</kbd>+Ziehen, mittlere Maustaste oder zwei Finger.</li>
     <li><b>Speichern</b> legt eine Datei <code>*.spicelab.json</code> an; <b>Laden</b> öffnet sie wieder. Klick auf den Namen oben benennt die Schaltung um.</li>
-    <li>Rückgängig <kbd>Strg/⌘</kbd>+<kbd>Z</kbd> · Wiederholen <kbd>Strg/⌘</kbd>+<kbd>Y</kbd></li>
+    <li><b>PNG</b> und <b>SVG</b> speichern die Zeichnung als Bild, z. B. für Arbeitsblätter (mit Messwerten, wenn simuliert wurde).</li>
+    <li>Rückgängig <kbd>Strg/⌘</kbd>+<kbd>Z</kbd> · Wiederholen <kbd>Strg/⌘</kbd>+<kbd>Y</kbd> · Kopieren <kbd>Strg/⌘</kbd>+<kbd>C</kbd> · Einfügen <kbd>Strg/⌘</kbd>+<kbd>V</kbd> · Alles markieren <kbd>Strg/⌘</kbd>+<kbd>A</kbd></li>
   </ul>
 </section>
 <section>
