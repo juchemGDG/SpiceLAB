@@ -33,6 +33,16 @@ const HELP = `
   </ul>
 </section>
 <section>
+  <h3>Oszilloskop</h3>
+  <ul>
+    <li><b>〜 Oszilloskop</b> (oder <kbd>O</kbd>) öffnet unten einen Bildschirm. Jeder <b>Messpunkt</b> wird eine Kurve in seiner Farbe – setze also zuerst Messpunkte.</li>
+    <li><b>Zeit</b> und <b>Spannung</b> stellst du wie am echten Gerät pro Kästchen (Div) ein; „Auto“ zeigt bei Wechsel- und Rechteckspannungen etwa drei Perioden, sonst 1 Sekunde.</li>
+    <li><b>Zeitlupe:</b> Fahre mit der Maus über den Bildschirm (Tablet: tippen). Die Messpunkte zeigen dann die Werte zu diesem Zeitpunkt, und LEDs leuchten so, wie sie es in diesem Moment täten.</li>
+    <li>„Kondensatoren zu Beginn entladen“ startet jede Messung mit leeren Kondensatoren – wie nach dem Zusammenstecken. Ohne Häkchen beginnt die Messung im eingeschwungenen Zustand.</li>
+    <li>Änderst du die Schaltung, misst das Oszilloskop nach einem kurzen Moment neu.</li>
+  </ul>
+</section>
+<section>
   <h3>Zahlen eingeben</h3>
   <ul>
     <li>Komma oder Punkt: <code>4,7</code> = <code>4.7</code>. Vorsätze: <code>p n µ (oder u) m k M G</code>, z. B. <code>4,7k</code>, <code>4k7</code>, <code>100n</code>, <code>2,2 mH</code>.</li>
