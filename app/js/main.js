@@ -9,6 +9,7 @@ import { openProperties } from './editor/properties.js';
 import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies } from './ui/results.js';
 import { Scope } from './ui/scope.js';
 import { exportSVG, svgToPng } from './ui/export.js';
+import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
 import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
 import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
@@ -261,7 +262,23 @@ on('btn-load', async () => {
   const file = await pickFile($('file-in'));
   if (!file) return;
   try {
-    resetTo(parseSchematic(file.text), file.name.replace(FILE_SUFFIX, '').replace(/\.json$/, ''));
+    const name = file.name.replace(FILE_SUFFIX, '').replace(/\.json$/, '');
+    let raw;
+    try { raw = JSON.parse(file.text); } catch { raw = null; }
+    if (isSchaltLab(raw)) {
+      // SchaltLab-Datei: umsetzen und der Lehrkraft sagen, was angenähert oder ausgelassen wurde
+      const { data, notes } = fromSchaltLab(raw);
+      resetTo(parseSchematic(JSON.stringify(data)), name);
+      await dialog({
+        title: 'SchaltLab-Datei geöffnet',
+        body: notes.length
+          ? `Beim Umsetzen für die Simulation:\n\n• ${notes.join('\n• ')}`
+          : 'Alle Bauteile konnten übernommen werden.',
+        buttons: [{ label: 'OK', value: true, primary: true }],
+      });
+    } else {
+      resetTo(parseSchematic(file.text), name);
+    }
   } catch (err) {
     await dialog({ title: 'Laden nicht möglich', body: err.message, buttons: [{ label: 'OK', value: true, primary: true }] });
   }
