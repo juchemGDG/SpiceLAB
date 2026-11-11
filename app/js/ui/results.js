@@ -5,6 +5,7 @@
 // eine Warnung (Grenzwerte aus der Bibliothek).
 
 import { operatingPoint } from '../engine/dc.js';
+import { transient, valueAt } from '../engine/transient.js';
 import { CircuitError } from '../engine/errors.js';
 import { Lamp } from '../engine/elements/lamp.js';
 import { Motor } from '../engine/elements/motor.js';
@@ -34,26 +35,52 @@ const showPotential = (phi) => formatValue(Math.abs(phi) < 1e-4 ? 0 : phi, 'V');
 const QUANTITIES = { npn: ['U_CE', 'I_C'], pnp: ['U_CE', 'I_C'], nmos: ['U_DS', 'I_D'], pmos: ['U_DS', 'I_D'], opamp: ['U_A', 'I_A'] };
 
 /**
- * Berechnet den Arbeitspunkt der Zeichnung.
- * @returns {{ ok: true, result, built } | { ok: false, message: string, highlight: Set<string> }}
+ * Berechnet die Schaltung: Arbeitspunkt oder – mit tran – den Zeitverlauf für das Oszilloskop.
+ * @param {object} [tran]  { stopTime, discharged }  discharged: Kondensatoren zu Beginn entladen
+ * @returns {{ ok: true, result, built, transient? } | { ok: false, message: string, highlight: Set<string> }}
+ *   result ist immer eine Momentaufnahme wie beim Arbeitspunkt (im Zeitbereich: am Ende),
+ *   transient der ganze Zeitverlauf.
  */
-export function simulate(doc) {
+export function simulate(doc, tran = null) {
   const built = buildNetlist(doc);
   if (built.netlist.elements.length === 0) {
     return { ok: false, message: 'Es gibt noch keine verbundenen Bauteile. Ziehe Bauteile auf die Fläche und verbinde sie mit Leitungen.', highlight: new Set() };
   }
   try {
-    return { ok: true, result: operatingPoint(built.netlist), built };
+    if (!tran) return { ok: true, result: operatingPoint(built.netlist), built };
+    const tr = transient(built.netlist, { stopTime: tran.stopTime, step: tran.stopTime / 1000, useInitialConditions: tran.discharged });
+    return { ok: true, result: snapshotAt(tr, tran.stopTime), built, transient: tr };
   } catch (err) {
-    if (!(err instanceof CircuitError)) throw err;
-    // Elementnamen (z. B. „Tr1:primär“) auf Bauteile der Zeichnung abbilden
-    const labels = [...new Set(err.elements.map((n) => n.split(':')[0]))];
-    const highlight = new Set(doc.comps.filter((c) => labels.includes(c.label) || labels.includes(c.id)).map((c) => c.id));
-    // interne Knotennamen (N1, N2 …) sieht man in der Zeichnung nicht → angeschlossene Bauteile nennen
-    const where = labels.length > 1 ? `an der Leitung zwischen ${labels.slice(0, -1).join(', ')} und ${labels.at(-1)}` : `an ${labels[0] ?? 'einer Leitung'}`;
-    const message = err.message.replace(/am Knoten „N\d+“/, where);
-    return { ok: false, message, highlight };
+    return { ok: false, ...explainError(doc, err) };
   }
+}
+
+/** Momentaufnahme eines Zeitverlaufs zur Zeit t – aufgebaut wie das Ergebnis eines Arbeitspunkts. */
+export function snapshotAt(tr, t) {
+  const potentials = Object.fromEntries(Object.entries(tr.potentials).map(([n, v]) => [n, valueAt(tr.time, v, t)]));
+  const elements = Object.fromEntries(Object.entries(tr.elements).map(([name, s]) => {
+    const U = valueAt(tr.time, s.U, t);
+    const I = valueAt(tr.time, s.I, t);
+    return [name, { U, I, P: U * I }];
+  }));
+  return { potentials, elements };
+}
+
+/** Frequenzen der Quellen in der Zeichnung (für die automatische Zeitbasis). */
+export function sourceFrequencies(doc) {
+  return doc.comps.filter((c) => c.type === 'sine' || c.type === 'square').map((c) => c.params.frequency);
+}
+
+/** Fehler des Simulationskerns → Meldung mit Bauteilnamen und zu markierende Bauteile. */
+function explainError(doc, err) {
+  if (!(err instanceof CircuitError)) throw err;
+  // Elementnamen (z. B. „Tr1:primär“) auf Bauteile der Zeichnung abbilden
+  const labels = [...new Set(err.elements.map((n) => n.split(':')[0]))];
+  const highlight = new Set(doc.comps.filter((c) => labels.includes(c.label) || labels.includes(c.id)).map((c) => c.id));
+  // interne Knotennamen (N1, N2 …) sieht man in der Zeichnung nicht → angeschlossene Bauteile nennen
+  const where = labels.length > 1 ? `an der Leitung zwischen ${labels.slice(0, -1).join(', ')} und ${labels.at(-1)}` : `an ${labels[0] ?? 'einer Leitung'}`;
+  const message = err.message.replace(/am Knoten „N\d+“/, where);
+  return { message, highlight };
 }
 
 /** Messwerte eines Bauteils (Beträge) und Zusatzangaben. */
