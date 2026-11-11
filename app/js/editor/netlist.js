@@ -6,13 +6,13 @@
 //     (T-Verbindung, dort zeichnet der Editor einen Verbindungspunkt).
 //   - Leitungen, die sich nur kreuzen, sind NICHT verbunden.
 //   - Anschlüsse an derselben Stelle sind verbunden.
-// Knoten mit Massesymbol heißen '0'. Fehlt die Masse, wird der Minuspol der ersten Quelle zum Bezug.
+// Knoten mit Massesymbol heißen '0'. Jeder galvanisch getrennte Teil ohne Masse bekommt den Minuspol
+// seiner ersten Quelle als Bezug; Teile ganz ohne Quelle werden übersprungen.
 
 import { CATALOG_BY_ID } from './catalog.js';
 import { onSegment } from './geometry.js';
 
 const key = ([x, y]) => `${x},${y}`;
-const NEGATIVE_PIN = { battery: '−', powerSupply: '−', sine: '2', square: '2', solar: '−', currentSource: '1' };
 
 /** Union-Find über Punkt-Schlüssel. */
 class Groups {
@@ -33,9 +33,10 @@ class Groups {
  * @param {import('./document.js').SchematicDocument} doc
  * @returns {{
  *   netlist: {elements: object[]},
- *   pinNets: Map<string, Record<string, string>>,  // Bauteil-ID → Anschluss → Knotenname
+ *   pinNets: Map<string, Record<string, string>>,  // Bauteil-ID → Anschluss → Knotenname (alle angeschlossenen)
  *   junctions: number[][],                         // Punkte für Verbindungspunkte
  *   skipped: string[],                             // Bezeichnungen nicht angeschlossener Bauteile
+ *   isolated: string[],                            // Bauteile in Teilen ohne Quelle (übersprungen)
  *   reference: string | null,                      // Hinweis, wenn der Bezugspunkt automatisch gewählt wurde
  * }}
  */
@@ -81,21 +82,10 @@ export function buildNetlist(doc) {
     return wired.has(g) || pinCount.get(g) > 1;
   };
 
-  // 4. Masse und Knotennamen
+  // 4. Knotennamen: Gruppen mit Massesymbol heißen '0', die übrigen N1, N2, …
   const groundGroups = new Set(
     pins.filter(({ comp }) => comp.type === 'gnd').flatMap(({ pins: ps }) => ps.map((p) => groups.find(key([p.x, p.y])))),
   );
-  let reference = null;
-  if (groundGroups.size === 0) {
-    const source = pins.find(({ comp, pins: ps }) => NEGATIVE_PIN[comp.type] && ps.some(connected));
-    const fallback = source ?? pins.find(({ comp, pins: ps }) => comp.type !== 'gnd' && ps.some(connected));
-    if (fallback) {
-      const pinName = NEGATIVE_PIN[fallback.comp.type] ?? fallback.pins[0].name;
-      const p = fallback.pins.find((q) => q.name === pinName) ?? fallback.pins[0];
-      groundGroups.add(groups.find(key([p.x, p.y])));
-      reference = `Kein Massesymbol: Bezugspunkt (0 V) ist Anschluss ${p.name} von ${fallback.comp.label}.`;
-    }
-  }
   const names = new Map();
   let counter = 0;
   const netName = (pt) => {
@@ -105,22 +95,68 @@ export function buildNetlist(doc) {
     return names.get(g);
   };
 
-  // 5. Elemente
-  const elements = [];
-  const pinNets = new Map();
+  // 5. Angeschlossene Bauteile und ihre Knoten (nicht angeschlossene werden übersprungen)
   const skipped = [];
+  const placed = [];
   for (const { comp, pins: ps } of pins) {
     if (comp.type === 'gnd') continue;
-    if (!ps.some(connected)) {
-      skipped.push(comp.label || comp.type);
-      continue;
+    if (!ps.some(connected)) skipped.push(comp.label || comp.type);
+    else placed.push({ comp, entry: CATALOG_BY_ID.get(comp.type), nets: Object.fromEntries(ps.map((p) => [p.name, netName([p.x, p.y])])) });
+  }
+
+  // 6. Galvanisch getrennte Teile („Inseln“). Ohne Masse bekommt eine Insel einen eigenen Bezugspunkt:
+  //    den Minuspol ihrer ersten Quelle (oder einen Knoten, wenn sie über einen Transformator versorgt wird).
+  //    Inseln ohne jede Quelle werden übersprungen – dort fließt kein Strom.
+  const islands = new Groups();
+  for (const { entry, nets } of placed) {
+    for (const group of entry.galvanic ?? [Object.keys(nets)]) {
+      group.forEach((pin) => islands.union(nets[pin], nets[group[0]]));
     }
-    const map = Object.fromEntries(ps.map((p) => [p.name, netName([p.x, p.y])]));
-    pinNets.set(comp.id, map);
-    const entry = CATALOG_BY_ID.get(comp.type);
-    elements.push(...entry.elements(comp.params, (pinName) => map[pinName], comp.label || comp.id));
+  }
+  const rename = new Map(); // Knoten → '0'
+  const references = [];
+  const isolated = [];
+  const byIsland = new Map();
+  for (const p of placed) {
+    for (const group of p.entry.galvanic ?? [Object.keys(p.nets)]) {
+      const island = islands.find(p.nets[group[0]]);
+      if (!byIsland.has(island)) byIsland.set(island, []);
+      byIsland.get(island).push({ ...p, group });
+    }
+  }
+  const skippedComps = new Set();
+  for (const members of byIsland.values()) {
+    const nets = new Set(members.flatMap((m) => m.group.map((pin) => m.nets[pin])));
+    if (nets.has('0')) continue;
+    const source = members.find((m) => m.entry.source);
+    const energized = members.find((m) => m.entry.energizes);
+    if (source) {
+      rename.set(source.nets[source.entry.source], '0');
+      references.push(`Kein Massesymbol: Bezugspunkt (0 V) ist Anschluss ${source.entry.source} von ${source.comp.label}.`);
+    } else if (energized) {
+      rename.set(energized.nets[energized.group[1]], '0');
+    } else {
+      members.forEach((m) => skippedComps.add(m.comp));
+      isolated.push(...members.map((m) => m.comp.label || m.comp.type));
+    }
+  }
+
+  // 7. Elemente für den Simulationskern
+  const elements = [];
+  const pinNets = new Map();
+  for (const { comp, entry, nets } of placed) {
+    const map = Object.fromEntries(Object.entries(nets).map(([pin, net]) => [pin, rename.get(net) ?? net]));
+    pinNets.set(comp.id, map); // auch für übersprungene Teile (Anzeige der Verbindungen)
+    if (!skippedComps.has(comp)) elements.push(...entry.elements(comp.params, (pinName) => map[pinName], comp.label || comp.id));
   }
 
   const junctions = [...degree].filter(([, n]) => n >= 3).map(([k]) => k.split(',').map(Number));
-  return { netlist: { elements }, pinNets, junctions, skipped, reference };
+  return {
+    netlist: { elements },
+    pinNets,
+    junctions,
+    skipped,
+    isolated: [...new Set(isolated)],
+    reference: references.length ? references.join(' ') : null,
+  };
 }

@@ -2,6 +2,9 @@
 //
 // Jeder Eintrag beschreibt
 //   symbol   – Schaltzeichen (symbols.js)
+//   source   – (optional) Anschluss, der bei fehlender Masse zum Bezugspunkt wird: Das Bauteil ist eine Quelle
+//   galvanic – (optional) Gruppen elektrisch verbundener Anschlüsse; Vorgabe: alle Anschlüsse zusammen
+//   energizes – (optional) versorgt galvanisch getrennte Teile (Transformator)
 //   params   – Einstellungen im Eigenschaften-Dialog:
 //              { key, label, unit, default, kind: 'number' | 'select' | 'bool', options, min, max }
 //   text     – was neben dem Symbol steht (aus den Einstellungen)
@@ -37,18 +40,21 @@ export const CATALOG = [
   },
   {
     id: 'battery', name: 'Batterie / Akku', cat: 'Versorgung', symbol: 'battery', prefix: 'B', hint: 'mit Innenwiderstand',
+    source: '−',
     params: [sel('type', 'Typ', choices(BATTERIES), 'block9V')],
     text: (p) => BATTERIES[p.type].label,
     elements: (p, net, name) => [{ type: 'BAT', name, nodes: [net('+'), net('−')], ...pick(BATTERIES[p.type], ['voltage', 'internalResistance']) }],
   },
   {
     id: 'powerSupply', name: 'Netzgerät', cat: 'Versorgung', symbol: 'dcSource', prefix: 'U', hint: 'Gleichspannung einstellbar',
+    source: '−',
     params: [num('voltage', 'Spannung', 'V', 5)],
     text: (p) => fmt(p.voltage, 'V'),
     elements: (p, net, name) => [{ type: 'BAT', name, nodes: [net('+'), net('−')], voltage: p.voltage, internalResistance: 0.01 }],
   },
   {
     id: 'sine', name: 'Wechselspannung', cat: 'Versorgung', symbol: 'acSource', prefix: 'U', hint: 'Sinus (Funktionsgenerator)',
+    source: '2',
     params: [num('amplitude', 'Scheitelwert', 'V', 5), num('frequency', 'Frequenz', 'Hz', 50, { min: 0 }), num('offset', 'Gleichanteil', 'V', 0)],
     text: (p) => `${fmt(p.amplitude, 'V')} · ${fmt(p.frequency, 'Hz')}`,
     elements: (p, net, name) => [{
@@ -58,6 +64,7 @@ export const CATALOG = [
   },
   {
     id: 'square', name: 'Rechteckspannung', cat: 'Versorgung', symbol: 'squareSource', prefix: 'U', hint: 'Takt (Funktionsgenerator)',
+    source: '2',
     params: [num('high', 'Spannung „an“', 'V', 5), num('low', 'Spannung „aus“', 'V', 0), num('frequency', 'Frequenz', 'Hz', 1000, { min: 0 }),
       num('duty', 'Tastgrad', '%', 50, { min: 1, max: 99 })],
     text: (p) => `${fmt(p.low, 'V')}/${fmt(p.high, 'V')} · ${fmt(p.frequency, 'Hz')}`,
@@ -72,12 +79,14 @@ export const CATALOG = [
   },
   {
     id: 'currentSource', name: 'Stromquelle', cat: 'Versorgung', symbol: 'currentSource', prefix: 'I', hint: 'konstanter Strom',
+    source: '1',
     params: [num('current', 'Stromstärke', 'A', 0.01)],
     text: (p) => fmt(p.current, 'A'),
     elements: (p, net, name) => [{ type: 'I', name, nodes: [net('1'), net('2')], value: p.current }],
   },
   {
     id: 'solar', name: 'Solarzelle', cat: 'Versorgung', symbol: 'solar', prefix: 'PV', hint: 'Bestrahlung einstellbar',
+    source: '−',
     params: [sel('type', 'Typ', choices(SOLAR_CELLS), 'module6V'), num('irradiance', 'Bestrahlungsstärke', 'W/m²', 1000, { min: 0 })],
     text: (p) => `${SOLAR_CELLS[p.type].label} · ${fmt(p.irradiance, 'W/m²')}`,
     elements: (p, net, name) => [{ type: 'PV', name, nodes: [net('+'), net('−')], ...strip(SOLAR_CELLS[p.type]), irradiance: p.irradiance }],
@@ -128,6 +137,8 @@ export const CATALOG = [
   },
   {
     id: 'transformer', name: 'Transformator', cat: 'Passive Bauteile', symbol: 'transformer', prefix: 'Tr', hint: 'zwei gekoppelte Spulen',
+    galvanic: [['P1', 'P2'], ['S1', 'S2']], // Primär- und Sekundärseite sind elektrisch getrennt
+    energizes: true, // die Sekundärseite wird über das Magnetfeld versorgt
     params: [
       num('primary', 'Induktivität primär', 'H', 1, { min: 0 }), num('ratio', 'Übersetzung N₂/N₁', '', 0.5, { min: 0 }),
       num('k', 'Koppelfaktor k', '', 0.99, { min: 0, max: 1 }), num('r1', 'Wicklungswiderstand primär', 'Ω', 1, { min: 0 }),

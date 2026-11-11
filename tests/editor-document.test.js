@@ -73,6 +73,49 @@ test('Anschlüsse, die direkt aufeinanderliegen, sind verbunden; lose Bauteile w
   assert.deepEqual(built.skipped, ['H1']);
 });
 
+test('Teil ohne Quelle wird übersprungen, zweiter Stromkreis mit eigener Batterie bekommt eigenen Bezug', () => {
+  const { doc } = simpleCircuit();
+  doc.addComponent('gnd', 100, 40);
+  // Insel ohne Quelle: zwei Widerstände nur miteinander verbunden
+  doc.addComponent('resistor', 800, 100);
+  doc.addComponent('resistor', 800, 200);
+  doc.addWire([[760, 100], [760, 200]]);
+  doc.addWire([[840, 100], [840, 200]]);
+  // zweiter Stromkreis ohne Masse: Batterie + Lampe
+  const b2 = doc.addComponent('battery', 400, 400);
+  doc.rotateComponents([b2.id]);
+  doc.setParams(b2.id, { type: 'flat4V5' });
+  const h = doc.addComponent('lamp', 600, 400);
+  doc.rotateComponents([h.id]);
+  doc.addWire([[400, 360], [600, 360]]);
+  doc.addWire([[400, 440], [600, 440]]);
+  const built = buildNetlist(doc);
+  assert.deepEqual(built.isolated, ['R2', 'R3']);
+  assert.match(built.reference, /− von B2/);
+  const r = operatingPoint(built.netlist); // ohne Fehler „hängt in der Luft“
+  assert.ok(r.elements.H1.I > 0.05);
+  assert.ok(Math.abs(r.elements.R1.I - 9 / 1001.5) < 1e-9);
+});
+
+test('Transformator: die Sekundärseite bekommt einen eigenen Bezugspunkt', () => {
+  const doc = new SchematicDocument();
+  const src = doc.addComponent('sine', 0, 0);
+  doc.rotateComponents([src.id]); // Anschluss 1 oben (0, −40), 2 unten (0, 40)
+  doc.addComponent('gnd', 0, 40);
+  doc.addComponent('transformer', 100, 0); // P1 (60, −40), P2 (60, 40), S1 (140, −40), S2 (140, 40)
+  doc.addWire([[0, -40], [60, -40]]);
+  doc.addWire([[0, 40], [60, 40]]);
+  const r = doc.addComponent('resistor', 200, 0);
+  doc.rotateComponents([r.id]); // (200, −40) und (200, 40)
+  doc.addWire([[140, -40], [200, -40]]);
+  doc.addWire([[140, 40], [200, 40]]);
+  const built = buildNetlist(doc);
+  assert.deepEqual(built.isolated, []);
+  assert.ok(built.netlist.elements.some((e) => e.type === 'K'));
+  assert.ok(built.pinNets.get(r.id)['2'] === '0' || built.pinNets.get(r.id)['1'] === '0', 'Sekundärseite hat Bezug');
+  operatingPoint(built.netlist); // berechenbar
+});
+
 test('Drehen: angeschlossene Leitungen laufen mit und bleiben rechtwinklig', () => {
   const doc = new SchematicDocument();
   const r = doc.addComponent('resistor', 0, 0);
