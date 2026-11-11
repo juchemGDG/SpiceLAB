@@ -7,11 +7,12 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "test": "node --test \"tests/**/*.test.js\"",
     "dev": "node tools/serve.mjs",
-    "references": "node tools/ngspice/make-references.mjs"
+    "references": "node tools/ngspice/make-references.mjs",
+    "uitest": "node --test \"tools/uitest/*.test.mjs\""
   }
 }

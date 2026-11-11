@@ -9,8 +9,10 @@ in Baden-Württemberg gebraucht wird. Läuft im Browser und als Desktop-Programm
 ## Entwickeln
 
 ```
-npm test        # Tests des Simulationskerns (Node 20 oder neuer, keine Abhängigkeiten)
+npm test        # Tests von Simulationskern und Editor-Logik (Node 22 oder neuer, keine Abhängigkeiten)
 npm run dev     # Web-App unter http://localhost:8080 starten
+npm run uitest  # Bedienungstests im unsichtbaren Chrome (braucht Chrome; Pfad notfalls in CHROME)
+npm run references  # Vergleichswerte mit ngspice neu erzeugen (braucht ngspice)
 ```
 
 Einmal je Arbeitskopie den Git-Hook einschalten, der vor jedem Commit die Tests ausführt:
