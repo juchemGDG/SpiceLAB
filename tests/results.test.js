@@ -80,3 +80,21 @@ test('Frequenzen der Quellen für die Zeitbasis', () => {
   doc.setParams(sq.id, { frequency: 2000 });
   assert.deepEqual(sourceFrequencies(doc), [50, 2000]);
 });
+
+test('Stromrichtung: Pfeil am Widerstand zeigt von Plus nach Minus und kehrt sich mit der Quelle um', async () => {
+  const { currentArrowsSVG } = await import('../app/js/ui/results.js');
+  const doc = new SchematicDocument();
+  const u = doc.addComponent('powerSupply', 0, 0);
+  doc.setParams(u.id, { voltage: 5 });
+  doc.rotateComponents([u.id]); // + oben
+  const r = doc.addComponent('resistor', 100, 0);
+  doc.rotateComponents([r.id]); // Anschluss 1 oben (100, −40), 2 unten (100, 40)
+  doc.addWire([[0, -40], [100, -40]]);
+  doc.addWire([[0, 40], [100, 40]]);
+  /** Richtung (dy) der Pfeile in der Reihenfolge der Bauteile: [Quelle, Widerstand] */
+  const directions = () => [...currentArrowsSVG(doc, simulate(doc).result).matchAll(/<line x1="[^"]+" y1="([^"]+)" x2="[^"]+" y2="([^"]+)"/g)]
+    .map((m) => Math.sign(Number(m[2]) - Number(m[1])));
+  assert.deepEqual(directions(), [-1, 1], 'in der Quelle von − nach + (aufwärts), im Widerstand abwärts');
+  doc.setParams(u.id, { voltage: -5 });
+  assert.deepEqual(directions(), [1, -1]);
+});

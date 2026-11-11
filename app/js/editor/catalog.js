@@ -3,6 +3,7 @@
 // Jeder Eintrag beschreibt
 //   symbol   – Schaltzeichen (symbols.js); symbolFor(params) – Schaltzeichen aus den Einstellungen (Schienen)
 //   sweep    – (optional) Größe für den Kennlinienschreiber: { param (im Element), unit, from, to, scale, label }
+//   flow     – (optional) Anschlusspaar [von, nach] für die Stromrichtung (Vorgabe: die ersten zwei Anschlüsse); noFlow: keine Anzeige
 //   ground   – (optional) Bauteil legt seine Anschlüsse auf Masse (0 V)
 //   internallyConnected – (optional) alle Anschlüsse sind im Bauteil verbunden (Schienen)
 //   grounded – (optional) Bauteil bezieht sich selbst auf Masse (Potentialschiene): kein Bezugspunkt nötig
@@ -141,6 +142,7 @@ export const CATALOG = [
   },
   {
     id: 'poti', name: 'Potentiometer', cat: 'Passive Bauteile', symbol: 'poti', prefix: 'R', hint: 'Schleifer einstellbar',
+    noFlow: true,
     sweep: { param: 'position', unit: '%', from: 0, to: 100, scale: 0.01, label: 'Schleiferstellung' },
     params: [num('value', 'Widerstand', 'Ω', 10000, { min: 0 }), num('position', 'Schleiferstellung (A → B)', '%', 50, { min: 0, max: 100 })],
     text: (p) => `${fmt(p.value, 'Ω')} · ${Math.round(p.position)} %`,
@@ -180,6 +182,7 @@ export const CATALOG = [
   },
   {
     id: 'transformer', name: 'Transformator', cat: 'Passive Bauteile', symbol: 'transformer', prefix: 'Tr', hint: 'zwei gekoppelte Spulen',
+    noFlow: true,
     galvanic: [['P1', 'P2'], ['S1', 'S2']], // Primär- und Sekundärseite sind elektrisch getrennt
     energizes: true, // die Sekundärseite wird über das Magnetfeld versorgt
     params: [
@@ -228,18 +231,21 @@ export const CATALOG = [
   },
   {
     id: 'npn', name: 'NPN-Transistor', cat: 'Halbleiter', symbol: 'npn', prefix: 'T', hint: 'B · C · E',
+    flow: ['C', 'E'],
     params: [sel('type', 'Typ', choices(TRANSISTORS, (t) => t.polarity === 'npn'), 'BC547B')],
     text: (p) => p.type,
     elements: (p, net, name) => [{ type: 'Q', name, nodes: [net('C'), net('B'), net('E')], polarity: 'npn', model: TRANSISTORS[p.type].model }],
   },
   {
     id: 'pnp', name: 'PNP-Transistor', cat: 'Halbleiter', symbol: 'pnp', prefix: 'T', hint: 'B · C · E',
+    flow: ['C', 'E'],
     params: [sel('type', 'Typ', choices(TRANSISTORS, (t) => t.polarity === 'pnp'), 'BC557B')],
     text: (p) => p.type,
     elements: (p, net, name) => [{ type: 'Q', name, nodes: [net('C'), net('B'), net('E')], polarity: 'pnp', model: TRANSISTORS[p.type].model }],
   },
   {
     id: 'nmos', name: 'N-MOSFET', cat: 'Halbleiter', symbol: 'nmos', prefix: 'T', hint: 'G · D · S',
+    flow: ['D', 'S'],
     params: [sel('type', 'Typ', choices(MOSFETS, (t) => t.polarity === 'n'), 'IRLZ44N')],
     text: (p) => p.type,
     elements: (p, net, name) => [{
@@ -248,6 +254,7 @@ export const CATALOG = [
   },
   {
     id: 'pmos', name: 'P-MOSFET', cat: 'Halbleiter', symbol: 'pmos', prefix: 'T', hint: 'G · D · S',
+    flow: ['D', 'S'],
     params: [sel('type', 'Typ', choices(MOSFETS, (t) => t.polarity === 'p'), 'IRF9540N')],
     text: (p) => p.type,
     elements: (p, net, name) => [{
@@ -256,6 +263,7 @@ export const CATALOG = [
   },
   {
     id: 'opamp', name: 'Operationsverstärker', cat: 'Halbleiter', symbol: 'opamp', prefix: 'U', hint: 'braucht V+ und V−',
+    noFlow: true,
     params: [sel('type', 'Typ', choices(OPAMPS), 'LM358')],
     text: (p) => p.type,
     elements: (p, net, name) => [{

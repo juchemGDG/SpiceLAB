@@ -6,7 +6,7 @@ import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
-import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies } from './ui/results.js';
+import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies, currentArrowsSVG } from './ui/results.js';
 import { Scope } from './ui/scope.js';
 import { exportSVG, svgToPng } from './ui/export.js';
 import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
@@ -47,6 +47,7 @@ export const app = {
   scopeOpen: false, // Oszilloskop offen → Zeitverlauf statt Arbeitspunkt
   panel: null, // offenes Messfeld: 'scope' | 'curve' | 'bode' | null
   showAll: false, // Spannung und Strom an allen Bauteilen anzeigen
+  showFlow: false, // Pfeile der technischen Stromrichtung
   underlay: '', annotations: '', probeValues: new Map(), highlight: new Set(),
 };
 
@@ -128,7 +129,7 @@ function updateScope() {
 function refreshAnnotations() {
   if (!app.sim) return;
   const { under, over } = annotationsSVG(doc, app.sim.result, { showAll: app.showAll });
-  Object.assign(app, { underlay: under, annotations: over, probeValues: probeValues(doc, app.sim) });
+  Object.assign(app, { underlay: under, annotations: over + (app.showFlow ? currentArrowsSVG(doc, app.sim.result) : ''), probeValues: probeValues(doc, app.sim) });
 }
 
 function render() {
@@ -163,6 +164,7 @@ function render() {
   $('btn-wire').classList.toggle('active', ui.tool === 'wire');
   $('btn-probe').classList.toggle('active', ui.tool === 'probe');
   $('btn-values').classList.toggle('active', app.showAll);
+  $('btn-flow').classList.toggle('active', app.showFlow);
   $('btn-scope').classList.toggle('active', app.scopeOpen);
   $('btn-curve').classList.toggle('active', app.panel === 'curve');
   $('btn-bode').classList.toggle('active', app.panel === 'bode');
@@ -349,6 +351,7 @@ $('breadcrumb').addEventListener('click', async () => {
 });
 on('btn-wire', () => ui.setTool(ui.tool === 'wire' ? 'select' : 'wire'));
 on('btn-probe', () => ui.setTool(ui.tool === 'probe' ? 'select' : 'probe'));
+on('btn-flow', () => { app.showFlow = !app.showFlow; refreshAnnotations(); render(); });
 on('btn-values', () => { app.showAll = !app.showAll; refreshAnnotations(); render(); });
 on('btn-rot', () => ui.rotate());
 on('btn-mir', () => ui.mirror());

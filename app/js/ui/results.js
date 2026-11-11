@@ -172,6 +172,42 @@ export function annotationsSVG(doc, result, { showAll = false } = {}) {
   return { under, over: s };
 }
 
+/**
+ * Pfeile der technischen Stromrichtung (von Plus nach Minus) neben den Bauteilen.
+ * Der Pfeil zeigt vom ersten zum zweiten Anschluss, wenn der Strom dort positiv ist, sonst umgekehrt.
+ * @returns {string} SVG-Text
+ */
+export function currentArrowsSVG(doc, result) {
+  let s = '';
+  for (const comp of doc.comps) {
+    const entry = entryOf(comp);
+    if (entry.ground || entry.internallyConnected || entry.noFlow) continue;
+    const el = result.elements[comp.label || comp.id];
+    if (!el || Math.abs(el.I) < 1e-7) continue;
+    const pins = doc.pins(comp);
+    const [from, to] = entry.flow ?? pins.slice(0, 2).map((p) => p.name);
+    const a = pins.find((p) => p.name === from);
+    const b = pins.find((p) => p.name === to);
+    if (!a || !b) continue;
+    let dx = b.x - a.x;
+    let dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len === 0) continue;
+    [dx, dy] = el.I > 0 ? [dx / len, dy / len] : [-dx / len, -dy / len];
+    // neben dem Bauteil, außerhalb von Beschriftung und Symbol
+    const [x1, y1] = worldBox(comp);
+    const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+    const cx = horizontal ? (a.x + b.x) / 2 : x1 - 16;
+    const cy = horizontal ? y1 - 42 : (a.y + b.y) / 2;
+    const [tx, ty, hx, hy] = [cx - dx * 13, cy - dy * 13, cx + dx * 13, cy + dy * 13];
+    const nx = -dy;
+    const ny = dx; // senkrecht zur Richtung (für die Pfeilspitze)
+    s += `<g pointer-events="none" stroke="${CURRENT}" fill="${CURRENT}"><line x1="${tx}" y1="${ty}" x2="${hx - dx * 4}" y2="${hy - dy * 4}" stroke-width="2.5" stroke-linecap="round"/>` +
+      `<polygon stroke="none" points="${hx},${hy} ${hx - dx * 9 + nx * 5},${hy - dy * 9 + ny * 5} ${hx - dx * 9 - nx * 5},${hy - dy * 9 - ny * 5}"/></g>`;
+  }
+  return s;
+}
+
 /** Potenzial eines Knotens gegen Masse (0 V), wie ein Spannungsmesser mit schwarzer Leitung an Masse. */
 const potentialOf = (result, net) => (net === '0' ? 0 : result.potentials[net]);
 
