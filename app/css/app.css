@@ -79,22 +79,34 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 
 /* ─── Arbeitsbereich ──────────────────────────────────────── */
 #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-main); min-width: 0; }
-#topbar {
-  background: var(--topbar); display: flex; flex-wrap: wrap; align-items: center;
-  padding: 5px 12px; gap: 6px 8px; flex-shrink: 0; border-bottom: 1px solid var(--topbar-border);
-}
-#sidebar-toggle, #menu-toggle {
+#topbar { background: var(--topbar); flex-shrink: 0; border-bottom: 1px solid var(--topbar-border); }
+#topbar-main { display: flex; align-items: center; gap: 10px; padding: 6px 12px 4px; min-height: 40px; }
+#sidebar-toggle {
   background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px 8px;
   border-radius: 4px; color: var(--text-dark); flex-shrink: 0;
 }
-#sidebar-toggle:hover, #menu-toggle:hover { background: var(--topbar-border); }
-#menu-toggle { display: none; }
-#breadcrumb { font-size: 14px; font-weight: bold; color: var(--text-dark); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-#status { font-size: 10px; color: var(--text-dark-muted); text-align: right; white-space: nowrap; flex-shrink: 0; }
-#status.error { color: var(--danger); font-weight: bold; white-space: normal; }
+#sidebar-toggle:hover { background: var(--topbar-border); }
+#breadcrumb { font-size: 15px; font-weight: bold; color: var(--text-dark); min-width: 0; max-width: 32ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+#status { flex: 1 1 0; min-width: 0; font-size: 11px; color: var(--text-dark-muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#status.error { color: var(--danger); font-weight: bold; white-space: normal; max-height: 2.8em; }
 
-#menubar { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; order: 10; flex-basis: 100%; }
-.btn-group { display: inline-flex; gap: 2px; }
+/* Reiter: Zeichnen · Messen · Datei */
+#toolrow { display: flex; align-items: stretch; gap: 14px; padding: 0 12px; }
+#tabs { display: flex; gap: 2px; flex-shrink: 0; align-items: flex-end; }
+.tab {
+  position: relative; border: none; background: transparent; font-size: 13px; font-weight: bold; color: var(--text-dark-muted);
+  padding: 8px 14px 7px; cursor: pointer; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent;
+}
+.tab:hover { background: rgba(255, 255, 255, 0.55); color: var(--text-dark); }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: rgba(255, 255, 255, 0.7); }
+/* Punkt am Reiter, wenn dort etwas eingeschaltet ist (z. B. Oszilloskop offen) */
+.tab.has-active::after { content: ''; position: absolute; top: 7px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+#menubar { flex: 1; min-width: 0; display: flex; align-items: center; }
+.tabpanel { display: flex; align-items: center; gap: 5px; width: 100%; padding: 5px 0; min-width: 0; }
+.tabpanel[hidden] { display: none; }
+.tabpanel .sep { width: 1px; align-self: stretch; margin: 3px 4px; background: var(--topbar-border); flex-shrink: 0; }
+.tabpanel .spacer { flex: 1; }
+.btn-group { display: inline-flex; gap: 2px; flex-shrink: 0; }
 .btn-menu {
   border: none; border-radius: var(--radius-btn); padding: 7px 10px; font-size: 11px; cursor: pointer;
   white-space: nowrap; background: var(--border); color: var(--text);
@@ -169,8 +181,8 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 .scope-side select { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; }
 .scope-side .row { display: flex; gap: 6px; }
 .scope-side .row label { flex: 1; min-width: 0; }
-.scope-side input { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; width: 100%; }
-.scope-side input.invalid { border-color: var(--danger); }
+.scope-side input:not([type=checkbox]) { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; width: 100%; }
+.scope-side input.invalid:not([type=checkbox]) { border-color: var(--danger); }
 .scope-readout { font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 #bode { height: 340px; }
 @media (max-width: 800px) { .panel { height: 340px; flex-direction: column; } .scope-side { width: auto; flex-direction: row; flex-wrap: wrap; } }
@@ -198,13 +210,11 @@ kbd {
 @media (max-width: 800px) {
   #sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transform: translateX(-100%); box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5); }
   #sidebar.open { transform: translateX(0); }
-  #menu-toggle { display: block; }
-  #menubar {
-    display: none; flex-basis: auto; position: fixed; top: 42px; right: 8px; z-index: 101; flex-direction: column;
-    align-items: stretch; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    padding: 8px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4); max-height: calc(100vh - 56px); overflow-y: auto;
-  }
-  #menubar.open { display: flex; }
   #status { display: none; }
+  #toolrow { flex-direction: column; gap: 0; padding: 0; }
+  #tabs { padding: 0 8px; }
+  .tab { flex: 1; text-align: center; }
+  #menubar { background: rgba(255, 255, 255, 0.7); }
+  .tabpanel { overflow-x: auto; padding: 5px 8px; }
 }
 @media (min-width: 801px) { #sidebar-toggle { display: none; } }

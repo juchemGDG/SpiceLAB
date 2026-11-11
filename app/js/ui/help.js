@@ -2,6 +2,13 @@
 
 const HELP = `
 <section>
+  <h3>Die Werkzeugleiste</h3>
+  <ul>
+    <li>Oben stehen immer <b>▶ Simulieren</b> und <b>Rückgängig/Wiederholen</b>. Darunter gibt es drei Reiter: <b>Zeichnen</b> (Leitung, Drehen, Spiegeln, Ansicht, Löschen), <b>Messen</b> (Messpunkt, Alle Werte, Stromrichtung, Ton, Oszilloskop, Kennlinie, Frequenzgang) und <b>Datei</b> (Neu, Laden, Speichern, Beispiele, PNG, SVG).</li>
+    <li>Ein blauer Punkt am Reiter zeigt, dass dort etwas eingeschaltet ist. Tastenkürzel wechseln den Reiter von selbst (z. B. <kbd>P</kbd> zu „Messen“).</li>
+  </ul>
+</section>
+<section>
   <h3>Bauteile</h3>
   <ul>
     <li>Bauteil aus der linken Leiste auf die Fläche <b>ziehen</b> – oder in der Leiste <b>doppelklicken</b>, dann erscheint es in der Mitte.</li>

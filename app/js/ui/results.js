@@ -45,7 +45,7 @@ const QUANTITIES = { phototransistor: ['U_CE', 'I_C'], npn: ['U_CE', 'I_C'], pnp
 export function simulate(doc, tran = null) {
   const built = buildNetlist(doc);
   if (built.netlist.elements.length === 0) {
-    return { ok: false, message: 'Es gibt noch keine verbundenen Bauteile. Ziehe Bauteile auf die Fläche und verbinde sie mit Leitungen.', highlight: new Set() };
+    return { ok: false, message: 'Es gibt noch keine verbundenen Bauteile. Ziehe Bauteile auf die Fläche und verbinde sie mit Leitungen.', highlight: new Set(), empty: true };
   }
   try {
     if (!tran) return { ok: true, result: operatingPoint(built.netlist), built };

@@ -27,37 +27,57 @@
   <!-- ═══════ Arbeitsbereich ═══════ -->
   <main id="main">
     <div id="topbar">
-      <button id="sidebar-toggle" title="Bauteile">☰</button>
-      <span id="breadcrumb">Neue Schaltung</span>
-      <button id="btn-simulate" class="btn-accent" title="Schaltung berechnen (F5)">▶ Simulieren</button>
-      <button id="btn-scope" class="btn-menu" title="Oszilloskop: Zeitverlauf an den Messpunkten (O)">〜 Oszilloskop</button>
-      <button id="btn-curve" class="btn-menu" title="Kennlinie: einen Wert durchfahren und Größen auftragen (K)">⌇ Kennlinie</button>
-      <button id="btn-bode" class="btn-menu" title="Frequenzgang: Verstärkung und Phase über der Frequenz (F)">⌁ Frequenzgang</button>
-      <nav id="menubar">
-        <button id="btn-wire" class="btn-menu" title="Leitung zeichnen (W)">Leitung</button>
-        <button id="btn-probe" class="btn-menu" title="Messpunkt (Prüfspitze) setzen (P)">Messpunkt</button>
-        <button id="btn-values" class="btn-menu" title="Spannung und Strom an allen Bauteilen anzeigen">Alle Werte</button>
-        <button id="btn-tone" class="btn-menu" title="Ton des Summers ein-/ausschalten">🔇 Ton</button>
-        <button id="btn-flow" class="btn-menu" title="Stromrichtung anzeigen (technische Stromrichtung: von Plus nach Minus)">Stromrichtung</button>
-        <span class="btn-group">
-          <button id="btn-rot" class="btn-menu" title="Markierte Bauteile drehen (R)">⟳ Drehen</button>
-          <button id="btn-mir" class="btn-menu" title="Markierte Bauteile spiegeln (M)">⇋ Spiegeln</button>
-        </span>
+      <!-- Zeile 1: Name, die wichtigste Aktion, Rückgängig, Statusmeldung -->
+      <div id="topbar-main">
+        <button id="sidebar-toggle" title="Bauteile">☰</button>
+        <span id="breadcrumb">Neue Schaltung</span>
+        <button id="btn-simulate" class="btn-accent" title="Schaltung berechnen (F5)">▶ Simulieren</button>
         <span class="btn-group">
           <button id="btn-undo" class="btn-menu" title="Rückgängig (Strg/⌘+Z)">↶</button>
           <button id="btn-redo" class="btn-menu" title="Wiederholen (Strg/⌘+Y)">↷</button>
         </span>
-        <button id="btn-fit" class="btn-menu" title="Zeichnung einpassen (0)">Ansicht anpassen</button>
-        <button id="btn-examples" class="btn-menu" title="Beispielschaltung öffnen">Beispiele</button>
-        <button id="btn-new" class="btn-menu">Neu</button>
-        <button id="btn-load" class="btn-menu">Laden</button>
-        <button id="btn-save" class="btn-menu">Speichern</button>
-        <button id="btn-png" class="btn-menu" title="Zeichnung als Bild (PNG) speichern">PNG</button>
-        <button id="btn-svg" class="btn-menu" title="Zeichnung als Vektorgrafik (SVG) speichern">SVG</button>
-      </nav>
-      <button id="btn-delete" class="btn-danger" title="Markierte Elemente löschen (Entf)" disabled>🗑 Löschen</button>
-      <button id="menu-toggle" title="Menü">⋮</button>
-      <span id="status">Bereit</span>
+        <span id="status">Bereit</span>
+      </div>
+      <!-- Zeile 2: Reiter und die Werkzeuge des gewählten Reiters -->
+      <div id="toolrow">
+        <div id="tabs" role="tablist" aria-label="Werkzeuggruppen">
+          <button class="tab" role="tab" data-tab="draw" id="tab-draw">Zeichnen</button>
+          <button class="tab" role="tab" data-tab="measure" id="tab-measure">Messen</button>
+          <button class="tab" role="tab" data-tab="file" id="tab-file">Datei</button>
+        </div>
+        <nav id="menubar">
+          <div class="tabpanel" role="tabpanel" data-panel="draw">
+            <button id="btn-wire" class="btn-menu" title="Leitung zeichnen (W)">╱ Leitung</button>
+            <span class="sep"></span>
+            <button id="btn-rot" class="btn-menu" title="Markierte Bauteile drehen (R)">⟳ Drehen</button>
+            <button id="btn-mir" class="btn-menu" title="Markierte Bauteile spiegeln (M)">⇋ Spiegeln</button>
+            <span class="sep"></span>
+            <button id="btn-fit" class="btn-menu" title="Zeichnung einpassen (0)">⤢ Ansicht anpassen</button>
+            <span class="spacer"></span>
+            <button id="btn-delete" class="btn-danger" title="Markierte Elemente löschen (Entf)" disabled>🗑 Löschen</button>
+          </div>
+          <div class="tabpanel" role="tabpanel" data-panel="measure" hidden>
+            <button id="btn-probe" class="btn-menu" title="Messpunkt (Prüfspitze) setzen (P)">⌖ Messpunkt</button>
+            <button id="btn-values" class="btn-menu" title="Spannung und Strom an allen Bauteilen anzeigen">Alle Werte</button>
+            <button id="btn-flow" class="btn-menu" title="Stromrichtung anzeigen (technische Stromrichtung: von Plus nach Minus)">→ Stromrichtung</button>
+            <button id="btn-tone" class="btn-menu" title="Ton des Summers ein-/ausschalten">🔇 Ton</button>
+            <span class="sep"></span>
+            <button id="btn-scope" class="btn-menu" title="Oszilloskop: Zeitverlauf an den Messpunkten (O)">〜 Oszilloskop</button>
+            <button id="btn-curve" class="btn-menu" title="Kennlinie: einen Wert durchfahren und Größen auftragen (K)">⌇ Kennlinie</button>
+            <button id="btn-bode" class="btn-menu" title="Frequenzgang: Verstärkung und Phase über der Frequenz (F)">⌁ Frequenzgang</button>
+          </div>
+          <div class="tabpanel" role="tabpanel" data-panel="file" hidden>
+            <button id="btn-new" class="btn-menu" title="Neue, leere Schaltung">Neu</button>
+            <button id="btn-load" class="btn-menu" title="Schaltung aus einer Datei öffnen (auch SchaltLab-Dateien)">Laden</button>
+            <button id="btn-save" class="btn-menu" title="Schaltung als Datei speichern">Speichern</button>
+            <span class="sep"></span>
+            <button id="btn-examples" class="btn-menu" title="Beispielschaltung öffnen">Beispiele</button>
+            <span class="sep"></span>
+            <button id="btn-png" class="btn-menu" title="Zeichnung als Bild (PNG) speichern">PNG</button>
+            <button id="btn-svg" class="btn-menu" title="Zeichnung als Vektorgrafik (SVG) speichern">SVG</button>
+          </div>
+        </nav>
+      </div>
     </div>
     <div id="canvas-container">
       <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>

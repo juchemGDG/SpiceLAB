@@ -104,7 +104,7 @@ function runSimulation() {
   } else {
     Object.assign(app, { sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: sim.highlight });
     updateScope();
-    setStatus(sim.message, { error: true });
+    setStatus(sim.message, { error: !sim.empty }); // leere Zeichnung ist ein Hinweis, kein Fehler
   }
 }
 
@@ -137,6 +137,8 @@ function refreshAnnotations() {
   const { under, over } = annotationsSVG(doc, app.sim.result, { showAll: app.showAll });
   Object.assign(app, { underlay: under, annotations: over + (app.showFlow ? currentArrowsSVG(doc, app.sim.result) : ''), probeValues: probeValues(doc, app.sim) });
 }
+
+let lastTool = 'select';
 
 function render() {
   if ((app.panel === 'curve' || app.panel === 'bode') && docKey() !== curveKey) {
@@ -174,6 +176,15 @@ function render() {
   $('btn-scope').classList.toggle('active', app.scopeOpen);
   $('btn-curve').classList.toggle('active', app.panel === 'curve');
   $('btn-bode').classList.toggle('active', app.panel === 'bode');
+  // Punkt am Reiter, wenn dort etwas eingeschaltet ist; passender Reiter öffnet sich, wenn man per Taste ein Werkzeug wählt
+  for (const t of document.querySelectorAll('.tab')) {
+    t.classList.toggle('has-active', Boolean(document.querySelector(`.tabpanel[data-panel="${t.dataset.tab}"] .btn-menu.active`)));
+  }
+  if (ui.tool !== lastTool) {
+    if (ui.tool === 'probe') showTab('measure');
+    else if (ui.tool === 'wire') showTab('draw');
+    lastTool = ui.tool;
+  }
   $('zoom-pct').textContent = `${Math.round(view.z * 100)} %`;
   if (!statusText) $('status').textContent = `${doc.comps.length} Bauteile · ${doc.wires.length} Leitungen`;
 }
@@ -184,6 +195,7 @@ function setStatus(text, { error = false } = {}) {
   const el = $('status');
   el.classList.toggle('error', error);
   el.textContent = text ?? `${doc.comps.length} Bauteile · ${doc.wires.length} Leitungen`;
+  el.title = el.textContent; // lange Meldungen sind in der Zeile gekürzt
 }
 
 // ── Bauteile platzieren ──
@@ -223,6 +235,7 @@ let curveKey = null;
 let curveTimer = null;
 
 function setPanel(name) {
+  showTab('measure');
   app.panel = app.panel === name ? null : name;
   app.scopeOpen = app.panel === 'scope';
   for (const id of ['scope', 'curve', 'bode']) $(id).hidden = app.panel !== id;
@@ -372,7 +385,22 @@ on('zoom-out', () => { const r = view.svg.getBoundingClientRect(); view.zoomAt(r
 on('zoom-pct', () => { view.z = 1; render(); });
 on('btn-help', openHelp);
 on('sidebar-toggle', () => $('sidebar').classList.toggle('open'));
-on('menu-toggle', () => $('menubar').classList.toggle('open'));
+
+// ── Reiter der Werkzeugleiste: Zeichnen · Messen · Datei ──
+
+const TAB_KEY = 'spicelab_tab';
+let currentTab = 'draw';
+try { currentTab = localStorage.getItem(TAB_KEY) || 'draw'; } catch { /* Speicher gesperrt → Vorgabe */ }
+
+function showTab(name) {
+  if (!document.querySelector(`.tabpanel[data-panel="${name}"]`)) name = 'draw';
+  currentTab = name;
+  for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+  for (const p of document.querySelectorAll('.tabpanel')) p.hidden = p.dataset.panel !== name;
+  try { localStorage.setItem(TAB_KEY, name); } catch { /* egal */ }
+}
+for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showTab(t.dataset.tab));
+showTab(currentTab);
 
 // ── Tastatur ──
 
