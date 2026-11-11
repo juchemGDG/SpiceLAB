@@ -103,10 +103,15 @@ docs/                Plan, Lehrplanbezug, Design
       Leitungsführung), Eigenschaften-Dialog, Simulieren mit Messwerten/Leuchten/Warnungen und
       Live-Neuberechnung, Schalter/Taster in der Simulation bedienen, Neu/Laden/Speichern, Hilfe.
       Bedienung im Headless-Chrome per DevTools-Protokoll geprüft (Skripte im Scratchpad, nicht im Repo).
-   offen: Bildexport (PNG/SVG), Kopieren/Einfügen, Beschriftung verschieben, SchaltLab-Dateien importieren,
-      automatische Bedienungstests ins Repo übernehmen
+      Nachgezogen: Bildexport PNG/SVG, Kopieren/Einfügen, Beschriftung verschieben, Texte bleiben beim
+      Drehen lesbar, Bedienungstests im Repo (npm run uitest, Headless-Chrome über DevTools-Protokoll).
+   offen: SchaltLab-Dateien importieren (dafür Potential- und GND-Schiene als Bauteile)
 7. Messen und Anzeigen: Volt-/Amperemeter als Bauteile (mit Innenwiderstand), Werte am Bauteil,
    Stromrichtung, Oszilloskop (2 Kanäle), Kennlinienschreiber (DC-Sweep), Frequenzgang (Kursstufe)
+   <- teilweise (vorgezogen auf Wunsch): Messpunkte/Prüfspitzen mit Potenzial gegen Masse statt Werten an
+      jedem Bauteil (Werte auf Wunsch, Hinweis beim Überfahren), Oszilloskop mit Messpunkten als Kanälen,
+      Zeitlupe (Cursor), Live-Neuberechnung.
+   offen: Volt-/Amperemeter, Kennlinienschreiber, Stromrichtung, Frequenzgang
 8. Unterrichtshilfen: Beispielschaltungen je Klassenstufe, Hilfe & Bedienung, Fehlermeldungen in Schülersprache
 9. Desktop (Tauri 2), Paketierung macOS/Windows/Linux, GitHub-Workflow, Web-Auslieferung,
    Einbettung `?embed=1` (Protokoll wie PAP-Editor/SchaltLab)
