@@ -7,6 +7,8 @@ import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
 import { simulate, annotationsSVG } from './ui/results.js';
+import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
+import { dialog } from './ui/dialog.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -111,6 +113,61 @@ buildPalette($('palette'), {
 
 const on = (id, fn) => $(id).addEventListener('click', fn);
 on('btn-simulate', () => { app.live = true; runSimulation(); render(); });
+
+// ── Dateien ──
+
+let docName = 'Neue Schaltung';
+let savedKey = docKey();
+const dirty = () => docKey() !== savedKey;
+
+function setDocName(name) {
+  docName = name;
+  $('breadcrumb').textContent = name;
+  document.title = `${name} – SpiceLab`;
+}
+
+/** Neue oder geladene Zeichnung übernehmen: Simulation beenden, Ansicht einpassen. */
+function resetTo(data, name) {
+  doc.load(data);
+  ui.selection = new Set();
+  Object.assign(app, { live: false, underlay: '', annotations: '', highlight: new Set() });
+  savedKey = docKey();
+  setDocName(name);
+  setStatus();
+  view.fit(doc);
+  render();
+}
+
+on('btn-new', async () => {
+  if (await confirmDiscard(dirty())) resetTo({ comps: [], wires: [], n: 0 }, 'Neue Schaltung');
+});
+on('btn-save', () => {
+  download(`${docName}${FILE_SUFFIX}`, JSON.stringify(doc.toJSON(), null, 1));
+  savedKey = docKey();
+  setStatus(`Gespeichert als „${docName}${FILE_SUFFIX}“`);
+});
+on('btn-load', async () => {
+  if (!(await confirmDiscard(dirty()))) return;
+  const file = await pickFile($('file-in'));
+  if (!file) return;
+  try {
+    resetTo(parseSchematic(file.text), file.name.replace(FILE_SUFFIX, '').replace(/\.json$/, ''));
+  } catch (err) {
+    await dialog({ title: 'Laden nicht möglich', body: err.message, buttons: [{ label: 'OK', value: true, primary: true }] });
+  }
+});
+window.addEventListener('beforeunload', (e) => { if (dirty()) e.preventDefault(); });
+$('breadcrumb').title = 'Name der Schaltung – Klick zum Umbenennen';
+$('breadcrumb').style.cursor = 'pointer';
+$('breadcrumb').addEventListener('click', async () => {
+  const input = document.createElement('input');
+  input.value = docName;
+  const form = document.createElement('div');
+  form.className = 'dlg-form';
+  form.append(input);
+  const ok = await dialog({ title: 'Schaltung umbenennen', body: form, buttons: [{ label: 'Abbrechen', value: false }, { label: 'OK', value: true, primary: true }] });
+  if (ok && input.value.trim()) setDocName(input.value.trim());
+});
 on('btn-wire', () => ui.setTool(ui.tool === 'wire' ? 'select' : 'wire'));
 on('btn-rot', () => ui.rotate());
 on('btn-mir', () => ui.mirror());
