@@ -158,6 +158,25 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 .dlg-btn.primary { background: var(--accent); color: #fff; }
 .dlg-btn.primary:hover { background: var(--accent-hover); }
 
+/* ─── Hilfe ───────────────────────────────────────────────── */
+#help-box {
+  background: #fff; border-radius: var(--radius-modal); width: min(92vw, 760px); max-height: 88vh;
+  display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+#help-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 12px; border-bottom: 1px solid var(--topbar); }
+#help-head h2 { font-size: 20px; color: var(--text-dark); }
+#help-close { border: none; background: var(--topbar); color: #334155; border-radius: var(--radius-btn); width: 36px; height: 36px; font-size: 16px; cursor: pointer; }
+#help-close:hover { background: var(--topbar-border); }
+#help-body { overflow-y: auto; padding: 8px 24px 24px; font-size: 15px; line-height: 1.55; color: #1e293b; }
+#help-body h3 { font-size: 16px; color: var(--accent); margin: 16px 0 6px; }
+#help-body ul { padding-left: 20px; }
+#help-body li { margin: 4px 0; }
+#help-body code { font: 13px ui-monospace, Menlo, Consolas, monospace; background: #f1f5f9; padding: 0 4px; border-radius: 3px; }
+kbd {
+  display: inline-block; padding: 1px 6px; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  background: #f1f5f9; border: 1px solid var(--topbar-border); border-bottom-width: 2px; border-radius: 4px;
+}
+
 /* ─── Schmale Bildschirme (Tablet hochkant, Handy) ────────── */
 @media (max-width: 800px) {
   #sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transform: translateX(-100%); box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5); }

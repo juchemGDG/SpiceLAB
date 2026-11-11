@@ -9,6 +9,7 @@ import { openProperties } from './editor/properties.js';
 import { simulate, annotationsSVG } from './ui/results.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
 import { dialog } from './ui/dialog.js';
+import { openHelp } from './ui/help.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -178,6 +179,7 @@ on('btn-fit', () => { view.fit(doc); render(); });
 on('zoom-in', () => { const r = view.svg.getBoundingClientRect(); view.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); render(); });
 on('zoom-out', () => { const r = view.svg.getBoundingClientRect(); view.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 0.8); render(); });
 on('zoom-pct', () => { view.z = 1; render(); });
+on('btn-help', openHelp);
 on('sidebar-toggle', () => $('sidebar').classList.toggle('open'));
 on('menu-toggle', () => $('menubar').classList.toggle('open'));
 
