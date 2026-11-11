@@ -10,6 +10,7 @@ test('Zahlen lesen: Komma, Punkt, Vorsätze, Einheiten', () => {
     '2µ': 2e-6, '2u': 2e-6, '2 µF': 2e-6, '1M': 1e6, '1 MΩ': 1e6, '10m': 0.01, '10 mA': 0.01,
     '−5 V': -5, '-5': -5, '1e-3': 1e-3, '0,5': 0.5, ',5': 0.5, '230 V': 230, '50 Hz': 50,
     '1000 W/m²': 1000, '20 °C': 20, '3000 1/min': 3000, '1,5V': 1.5, '470µ': 470e-6, '2,2 mH': 2.2e-3,
+    '5 mN·m': 5e-3, '0 N·m': 0, '1 kW/m²': 1000, '50 %': 50, '−10 °C': -10,
   };
   for (const [text, value] of Object.entries(cases)) close(parseValue(text), value);
 });
@@ -31,6 +32,13 @@ test('Zahlen schreiben mit passendem Vorsatz und deutschem Komma', () => {
   assert.equal(formatValue(1.23456, 'V', 4), '1,235 V');
 });
 
-test('Lesen und Schreiben passen zusammen', () => {
-  for (const v of [4700, 0.0123, 1e-9, 2.2e6, -0.5]) close(parseValue(formatValue(v, 'Ω', 6)), Number(v.toPrecision(6)));
+test('Lesen und Schreiben passen zusammen – für alle Einheiten des Bauteilkatalogs', async () => {
+  const { CATALOG } = await import('../app/js/editor/catalog.js');
+  const units = new Set(CATALOG.flatMap((e) => e.params.filter((p) => p.kind === 'number').map((p) => p.unit)));
+  for (const unit of units) {
+    for (const v of [4700, 0.0123, 1e-9, 2.2e6, -0.5, 0]) {
+      const text = unit ? formatValue(v, unit, 6) : String(v);
+      close(parseValue(text), Number(v.toPrecision(6)));
+    }
+  }
 });

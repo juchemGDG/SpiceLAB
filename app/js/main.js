@@ -5,6 +5,7 @@ import { EditorView, GRID } from './editor/view.js';
 import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
+import { openProperties } from './editor/properties.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -16,7 +17,10 @@ const ui = new Interaction({
   doc,
   view,
   changed: render,
-  openProperties: (comp) => app.openProperties?.(comp),
+  openProperties: async (comp) => {
+    if (await openProperties(doc, comp)) app.onChange?.();
+    render();
+  },
   status: (text) => setStatus(text),
 });
 

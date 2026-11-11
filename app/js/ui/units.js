@@ -8,7 +8,7 @@
 
 const PREFIXES = { p: 1e-12, n: 1e-9, µ: 1e-6, μ: 1e-6, u: 1e-6, m: 1e-3, '': 1, k: 1e3, K: 1e3, M: 1e6, G: 1e9 };
 // Einheiten, die am Ende stehen dürfen („K“ fehlt absichtlich: 4,7K bedeutet 4,7 kΩ)
-const UNIT_SUFFIX = /(Ω|Ohm|ohm|V|A|F|H|W\/m²|W|Hz|s|lx|°C|%|1\/min)$/;
+const UNIT_SUFFIX = /(Ω|Ohm|ohm|V|A|F|H|W\/m²|W|Hz|s|lx|°C|%|1\/min|N·m|Nm)$/;
 
 /**
  * Liest eine Zahl mit optionalem SI-Vorsatz und optionaler Einheit.
