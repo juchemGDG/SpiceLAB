@@ -2,6 +2,7 @@
 //
 // Jeder Eintrag beschreibt
 //   symbol   – Schaltzeichen (symbols.js); symbolFor(params) – Schaltzeichen aus den Einstellungen (Schienen)
+//   sweep    – (optional) Größe für den Kennlinienschreiber: { param (im Element), unit, from, to, scale, label }
 //   ground   – (optional) Bauteil legt seine Anschlüsse auf Masse (0 V)
 //   internallyConnected – (optional) alle Anschlüsse sind im Bauteil verbunden (Schienen)
 //   grounded – (optional) Bauteil bezieht sich selbst auf Masse (Potentialschiene): kein Bezugspunkt nötig
@@ -59,6 +60,7 @@ export const CATALOG = [
   },
   {
     id: 'battery', name: 'Batterie / Akku', cat: 'Versorgung', symbol: 'battery', prefix: 'B', hint: 'mit Innenwiderstand',
+    sweep: { param: 'voltage', unit: 'V', from: 0, to: 10, label: 'Quellenspannung' },
     source: '−',
     params: [sel('type', 'Typ', choices(BATTERIES), 'block9V')],
     text: (p) => BATTERIES[p.type].label,
@@ -66,6 +68,7 @@ export const CATALOG = [
   },
   {
     id: 'powerSupply', name: 'Netzgerät', cat: 'Versorgung', symbol: 'dcSource', prefix: 'U', hint: 'Gleichspannung einstellbar',
+    sweep: { param: 'voltage', unit: 'V', from: 0, to: 10, label: 'Spannung' },
     source: '−',
     params: [num('voltage', 'Spannung', 'V', 5)],
     text: (p) => fmt(p.voltage, 'V'),
@@ -98,6 +101,7 @@ export const CATALOG = [
   },
   {
     id: 'currentSource', name: 'Stromquelle', cat: 'Versorgung', symbol: 'currentSource', prefix: 'I', hint: 'konstanter Strom',
+    sweep: { param: 'value', unit: 'A', from: 0, to: 0.02, label: 'Stromstärke' },
     source: '1',
     params: [num('current', 'Stromstärke', 'A', 0.01)],
     text: (p) => fmt(p.current, 'A'),
@@ -105,6 +109,7 @@ export const CATALOG = [
   },
   {
     id: 'solar', name: 'Solarzelle', cat: 'Versorgung', symbol: 'solar', prefix: 'PV', hint: 'Bestrahlung einstellbar',
+    sweep: { param: 'irradiance', unit: 'W/m²', from: 0, to: 1000, label: 'Bestrahlungsstärke' },
     source: '−',
     params: [sel('type', 'Typ', choices(SOLAR_CELLS), 'module6V'), num('irradiance', 'Bestrahlungsstärke', 'W/m²', 1000, { min: 0 })],
     text: (p) => `${SOLAR_CELLS[p.type].label} · ${fmt(p.irradiance, 'W/m²')}`,
@@ -136,18 +141,21 @@ export const CATALOG = [
   },
   {
     id: 'poti', name: 'Potentiometer', cat: 'Passive Bauteile', symbol: 'poti', prefix: 'R', hint: 'Schleifer einstellbar',
+    sweep: { param: 'position', unit: '%', from: 0, to: 100, scale: 0.01, label: 'Schleiferstellung' },
     params: [num('value', 'Widerstand', 'Ω', 10000, { min: 0 }), num('position', 'Schleiferstellung (A → B)', '%', 50, { min: 0, max: 100 })],
     text: (p) => `${fmt(p.value, 'Ω')} · ${Math.round(p.position)} %`,
     elements: (p, net, name) => [{ type: 'POT', name, nodes: [net('A'), net('B'), net('S')], value: p.value, position: p.position / 100 }],
   },
   {
     id: 'ldr', name: 'Fotowiderstand (LDR)', cat: 'Passive Bauteile', symbol: 'ldr', prefix: 'R', hint: 'Helligkeit einstellbar',
+    sweep: { param: 'illuminance', unit: 'lx', from: 1, to: 1000, label: 'Beleuchtungsstärke', min: 1e-3 },
     params: [sel('type', 'Typ', choices(LDRS), 'GL5528'), num('illuminance', 'Beleuchtungsstärke', 'lx', 300, { min: 0 })],
     text: (p) => `${p.type} · ${fmt(p.illuminance, 'lx')}`,
     elements: (p, net, name) => [{ type: 'LDR', name, nodes: [net('1'), net('2')], ...strip(LDRS[p.type]), illuminance: Math.max(p.illuminance, 1e-3) }],
   },
   {
     id: 'ntc', name: 'Heißleiter (NTC)', cat: 'Passive Bauteile', symbol: 'ntc', prefix: 'R', hint: 'Temperatur einstellbar',
+    sweep: { param: 'temperature', unit: '°C', from: 0, to: 100, label: 'Temperatur' },
     params: [sel('type', 'Typ', choices(NTCS), 'ntc10k'), num('temperature', 'Temperatur', '°C', 20)],
     text: (p) => `${NTCS[p.type].label.split(' (')[0]} · ${fmt(p.temperature, '°C')}`,
     elements: (p, net, name) => [{ type: 'NTC', name, nodes: [net('1'), net('2')], ...strip(NTCS[p.type]), temperature: p.temperature }],
