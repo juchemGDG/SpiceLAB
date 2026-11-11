@@ -98,6 +98,13 @@ docs/                Plan, Lehrplanbezug, Design
    offen: OPV gegen ein Hersteller-Makromodell vergleichen
 6. Editor im SchaltLab-/PAP-Stil: Bauteilkarten, Raster, Leitungen, Drehen/Spiegeln, Eigenschaften,
    Rückgängig, Speichern/Laden (JSON), Bildexport
+   <- weitgehend erledigt: Layout, Schaltzeichen (SchaltLab + neue), Katalog (27 Karten), Zeichnungsmodell,
+      Netzliste (T-Verbindungen, Inseln mit eigenem Bezug), Bedienung wie SchaltLab (verbesserte
+      Leitungsführung), Eigenschaften-Dialog, Simulieren mit Messwerten/Leuchten/Warnungen und
+      Live-Neuberechnung, Schalter/Taster in der Simulation bedienen, Neu/Laden/Speichern, Hilfe.
+      Bedienung im Headless-Chrome per DevTools-Protokoll geprüft (Skripte im Scratchpad, nicht im Repo).
+   offen: Bildexport (PNG/SVG), Kopieren/Einfügen, Beschriftung verschieben, SchaltLab-Dateien importieren,
+      automatische Bedienungstests ins Repo übernehmen
 7. Messen und Anzeigen: Volt-/Amperemeter als Bauteile (mit Innenwiderstand), Werte am Bauteil,
    Stromrichtung, Oszilloskop (2 Kanäle), Kennlinienschreiber (DC-Sweep), Frequenzgang (Kursstufe)
 8. Unterrichtshilfen: Beispielschaltungen je Klassenstufe, Hilfe & Bedienung, Fehlermeldungen in Schülersprache
