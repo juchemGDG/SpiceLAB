@@ -9,7 +9,7 @@ import { CircuitError } from '../engine/errors.js';
 import { Lamp } from '../engine/elements/lamp.js';
 import { Motor } from '../engine/elements/motor.js';
 import { buildNetlist } from '../editor/netlist.js';
-import { labelLines, worldBox } from '../editor/view.js';
+import { labelLines, worldBox, entryOf } from '../editor/view.js';
 import { formatValue } from './units.js';
 import { esc } from '../editor/svg.js';
 import { LEDS, DIODES } from '../library/diodes.js';
@@ -28,6 +28,7 @@ const FONT = 'Helvetica, Arial, sans-serif';
 // 1 GΩ) erscheinen als 0 – die Rechnung selbst bleibt unverändert.
 const showU = (u) => formatValue(Math.abs(u) < 1e-4 ? 0 : Math.abs(u), 'V');
 const showI = (i) => formatValue(Math.abs(i) < 1e-7 ? 0 : Math.abs(i), 'A');
+const showPotential = (phi) => formatValue(Math.abs(phi) < 1e-4 ? 0 : phi, 'V'); // mit Vorzeichen
 
 /** Bezeichnung der Messgrößen je Bauteiltyp. */
 const QUANTITIES = { npn: ['U_CE', 'I_C'], pnp: ['U_CE', 'I_C'], nmos: ['U_DS', 'I_D'], pmos: ['U_DS', 'I_D'], opamp: ['U_A', 'I_A'] };
@@ -99,7 +100,7 @@ function readings(comp, result) {
  * SVG-Text der Messwerte.
  * @returns {{under: string, over: string}} under: Leuchten hinter den Schaltzeichen, over: Messwerte darüber
  */
-export function annotationsSVG(doc, result) {
+export function annotationsSVG(doc, result, { showAll = false } = {}) {
   let s = '';
   let under = '';
   for (const comp of doc.comps) {
@@ -117,11 +118,44 @@ export function annotationsSVG(doc, result) {
     let x = last ? last.x : horizontal ? (x1 + x2) / 2 : x2 + 8;
     let y = last ? last.y + 15 : horizontal ? y2 + 16 : (y1 + y2) / 2;
     const anchor = last?.anchor ?? (horizontal ? 'middle' : 'start');
-    const rows = [...r.lines, ...(r.warnings ?? []).map((w) => [w, WARN])];
+    // Messwerte nur auf Wunsch („Alle Werte“), Warnungen immer
+    const rows = [...(showAll ? r.lines : []), ...(r.warnings ?? []).map((w) => [w, WARN])];
     for (const [text, color] of rows) {
       s += `<text x="${x}" y="${y}" font-size="12" font-weight="bold" font-family="${FONT}" text-anchor="${anchor}" fill="${color}" pointer-events="none">${esc(text)}</text>`;
       y += 14;
     }
   }
   return { under, over: s };
+}
+
+/** Potenzial eines Knotens gegen Masse (0 V), wie ein Spannungsmesser mit schwarzer Leitung an Masse. */
+const potentialOf = (result, net) => (net === '0' ? 0 : result.potentials[net]);
+
+/** Messwerte für die Fähnchen der Messpunkte: Map Messpunkt-ID → „4,85 V“ (– = nicht angeschlossen). */
+export function probeValues(doc, sim) {
+  const values = new Map();
+  for (const p of doc.probes) {
+    const net = sim.built.probeNets.get(p.id);
+    const phi = net === null ? undefined : potentialOf(sim.result, net);
+    values.set(p.id, phi === undefined ? '–' : showPotential(phi));
+  }
+  return values;
+}
+
+/**
+ * Hinweistext beim Überfahren: Leitung → Potenzial, Bauteil → Name und (nach dem Simulieren) U und I.
+ * @param {object|null} sim  letztes erfolgreiches Simulationsergebnis
+ */
+export function describe(target, sim) {
+  if (target.kind === 'wire') {
+    if (!sim) return null;
+    const phi = potentialOf(sim.result, sim.built.wireNets.get(target.wire.id));
+    return phi === undefined ? null : [`φ = ${showPotential(phi)} (gegen Masse)`];
+  }
+  const comp = target.comp;
+  const entry = entryOf(comp);
+  const head = `${comp.label ? `${comp.label} – ` : ''}${entry.name}`;
+  if (!sim) return [head];
+  const r = readings(comp, sim.result);
+  return [head, ...(r?.lines.map(([text]) => text) ?? [])];
 }

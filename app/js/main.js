@@ -6,7 +6,7 @@ import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
-import { simulate, annotationsSVG } from './ui/results.js';
+import { simulate, annotationsSVG, probeValues, describe } from './ui/results.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
 import { dialog } from './ui/dialog.js';
 import { openHelp } from './ui/help.js';
@@ -27,33 +27,49 @@ const ui = new Interaction({
   },
   status: (text) => setStatus(text),
   isLive: () => app.live,
+  probeValues: () => app.probeValues,
+  describe: (target) => describe(target, app.sim),
 });
 
 /** Gemeinsamer Zustand (auch für Bedienungstests im Browser erreichbar). */
-export const app = { doc, view, ui, render, setStatus, underlay: '', annotations: '', highlight: new Set(), live: false };
+export const app = {
+  doc, view, ui, render, setStatus,
+  live: false, // nach dem ersten „Simulieren“: bei jeder Änderung neu rechnen
+  sim: null, // letztes erfolgreiches Ergebnis { result, built }
+  showAll: false, // Spannung und Strom an allen Bauteilen anzeigen
+  underlay: '', annotations: '', probeValues: new Map(), highlight: new Set(),
+};
 
 // ── Simulation ──
 // Nach dem ersten „Simulieren“ wird bei jeder Änderung der Zeichnung neu gerechnet (live).
 
-const docKey = () => JSON.stringify([doc.comps, doc.wires]);
+const docKey = () => JSON.stringify([doc.comps, doc.wires, doc.probes]);
 let simulatedKey = null;
 
 function runSimulation() {
   simulatedKey = docKey();
   const sim = simulate(doc);
   if (sim.ok) {
-    const { under, over } = annotationsSVG(doc, sim.result);
-    Object.assign(app, { underlay: under, annotations: over, highlight: new Set() });
+    Object.assign(app, { sim, highlight: new Set() });
+    refreshAnnotations();
     const hints = [
       sim.built.reference,
       sim.built.skipped.length ? `Nicht angeschlossen: ${sim.built.skipped.join(', ')}` : null,
       sim.built.isolated.length ? `Ohne Spannungsquelle (kein Strom): ${sim.built.isolated.join(', ')}` : null,
     ];
-    setStatus(hints.filter(Boolean).join(' · ') || 'Arbeitspunkt berechnet');
+    const tip = doc.probes.length ? 'Arbeitspunkt berechnet' : 'Berechnet – Messpunkt setzen (P) oder mit der Maus über Leitungen und Bauteile fahren';
+    setStatus(hints.filter(Boolean).join(' · ') || tip);
   } else {
-    Object.assign(app, { underlay: '', annotations: '', highlight: sim.highlight });
+    Object.assign(app, { sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: sim.highlight });
     setStatus(sim.message, { error: true });
   }
+}
+
+/** Anzeige aus dem letzten Ergebnis neu aufbauen (z. B. nach „Alle Werte“). */
+function refreshAnnotations() {
+  if (!app.sim) return;
+  const { under, over } = annotationsSVG(doc, app.sim.result, { showAll: app.showAll });
+  Object.assign(app, { underlay: under, annotations: over, probeValues: probeValues(doc, app.sim) });
 }
 
 function render() {
@@ -67,11 +83,14 @@ function render() {
     underlay: app.underlay,
     annotations: app.annotations,
     highlight: app.highlight,
+    probeValues: app.probeValues,
   });
   $('btn-delete').disabled = ui.selection.size === 0;
   $('btn-undo').disabled = !doc.canUndo;
   $('btn-redo').disabled = !doc.canRedo;
   $('btn-wire').classList.toggle('active', ui.tool === 'wire');
+  $('btn-probe').classList.toggle('active', ui.tool === 'probe');
+  $('btn-values').classList.toggle('active', app.showAll);
   $('zoom-pct').textContent = `${Math.round(view.z * 100)} %`;
   if (!statusText) $('status').textContent = `${doc.comps.length} Bauteile · ${doc.wires.length} Leitungen`;
 }
@@ -131,7 +150,7 @@ function setDocName(name) {
 function resetTo(data, name) {
   doc.load(data);
   ui.selection = new Set();
-  Object.assign(app, { live: false, underlay: '', annotations: '', highlight: new Set() });
+  Object.assign(app, { live: false, sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: new Set() });
   savedKey = docKey();
   setDocName(name);
   setStatus();
@@ -170,6 +189,8 @@ $('breadcrumb').addEventListener('click', async () => {
   if (ok && input.value.trim()) setDocName(input.value.trim());
 });
 on('btn-wire', () => ui.setTool(ui.tool === 'wire' ? 'select' : 'wire'));
+on('btn-probe', () => ui.setTool(ui.tool === 'probe' ? 'select' : 'probe'));
+on('btn-values', () => { app.showAll = !app.showAll; refreshAnnotations(); render(); });
 on('btn-rot', () => ui.rotate());
 on('btn-mir', () => ui.mirror());
 on('btn-undo', () => { doc.undo(); ui.selection = new Set(); render(); });

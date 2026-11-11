@@ -35,6 +35,7 @@ class Groups {
  *   netlist: {elements: object[]},
  *   pinNets: Map<string, Record<string, string>>,  // Bauteil-ID → Anschluss → Knotenname (alle angeschlossenen)
  *   probeNets: Map<string, string|null>,           // Messpunkt-ID → Knotenname (null: nirgends angeschlossen)
+ *   wireNets: Map<string, string>,                 // Leitungs-ID → Knotenname
  *   junctions: number[][],                         // Punkte für Verbindungspunkte
  *   skipped: string[],                             // Bezeichnungen nicht angeschlossener Bauteile
  *   isolated: string[],                            // Bauteile in Teilen ohne Quelle (übersprungen)
@@ -169,11 +170,17 @@ export function buildNetlist(doc) {
     return [pr.id, rename.get(net) ?? net];
   }));
 
+  const wireNets = new Map(doc.wires.map((w) => {
+    const net = netName(w.pts[0]);
+    return [w.id, rename.get(net) ?? net];
+  }));
+
   const junctions = [...degree].filter(([, n]) => n >= 3).map(([k]) => k.split(',').map(Number));
   return {
     netlist: { elements },
     pinNets,
     probeNets,
+    wireNets,
     junctions,
     skipped,
     isolated: [...new Set(isolated)],

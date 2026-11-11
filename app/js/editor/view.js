@@ -10,6 +10,16 @@ import { symbolSVG, INK, INK_SELECTED, esc } from './svg.js';
 export const GRID = 20;
 const FONT = 'Helvetica, Arial, sans-serif';
 
+/** Farben der Messpunkte – wie die Kanäle eines Schuloszilloskops. */
+export const PROBE_COLORS = ['#ca8a04', '#0891b2', '#c026d3', '#16a34a', '#ea580c', '#4f46e5'];
+export const probeColor = (probe) => PROBE_COLORS[(probe.label.charCodeAt(0) - 65) % PROBE_COLORS.length] ?? PROBE_COLORS[0];
+
+/** Lage des Fähnchens eines Messpunkts (oben rechts vom Punkt) – auch für die Trefferprüfung. */
+export function probeFlag(probe, text) {
+  const w = 14 + text.length * 7;
+  return { x: probe.x + 10, y: probe.y - 34, w, h: 20 };
+}
+
 export function entryOf(comp) {
   return CATALOG_BY_ID.get(comp.type);
 }
@@ -102,7 +112,7 @@ export class EditorView {
    * Alles zeichnen.
    * @param {object} s Zustand: doc, selection (Set), junctions, overlay (SVG-Text für Hilfsgrafik),
    *                   underlay/annotations (SVG-Text unter bzw. über der Zeichnung, z. B. Messwerte),
-   *                   highlight (Set fehlerhafter Bauteile)
+   *                   highlight (Set fehlerhafter Bauteile), probeValues (Map Messpunkt → Messwert-Text)
    */
   render(s) {
     const r = this.svg.getBoundingClientRect();
@@ -113,7 +123,7 @@ export class EditorView {
     out += `<g transform="translate(${this.x} ${this.y}) scale(${this.z})">`;
     out += `<rect x="${x0}" y="${y0}" width="${r.width / this.z}" height="${r.height / this.z}" fill="url(#grid)"/>`;
     out += s.underlay ?? '';
-    out += sceneSVG(s.doc, { selection: s.selection, highlight: s.highlight, junctions: s.junctions });
+    out += sceneSVG(s.doc, { selection: s.selection, highlight: s.highlight, junctions: s.junctions, probeValues: s.probeValues });
     out += s.annotations ?? '';
     out += s.overlay ?? '';
     out += '</g>';
@@ -121,8 +131,30 @@ export class EditorView {
   }
 }
 
+/** Text im Fähnchen eines Messpunkts: „A“ oder mit Messwert „A: 4,85 V“. */
+export function probeText(probe, values) {
+  const v = values?.get(probe.id);
+  return v ? `${probe.label}: ${v}` : probe.label;
+}
+
+/** Messpunkte: Punkt in Kanalfarbe, Linie zum Fähnchen mit Bezeichnung und Messwert. */
+function probesSVG(doc, selection, values) {
+  let out = '';
+  for (const p of doc.probes ?? []) {
+    const color = probeColor(p);
+    const text = probeText(p, values);
+    const f = probeFlag(p, text);
+    const sel = selection.has(p.id);
+    out += `<line x1="${p.x}" y1="${p.y}" x2="${f.x}" y2="${f.y + f.h}" stroke="${color}" stroke-width="2"/>`;
+    out += `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="4" fill="#fff" stroke="${color}" stroke-width="${sel ? 3 : 2}"/>`;
+    out += `<text x="${f.x + 7}" y="${f.y + 14}" font-size="12" font-weight="bold" font-family="${FONT}" fill="${color}">${esc(text)}</text>`;
+    out += `<circle cx="${p.x}" cy="${p.y}" r="${sel ? 6 : 5}" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
+  }
+  return out;
+}
+
 /** Die Zeichnung selbst (auch für den Bildexport). */
-export function sceneSVG(doc, { selection = new Set(), highlight = new Set(), junctions = [] } = {}) {
+export function sceneSVG(doc, { selection = new Set(), highlight = new Set(), junctions = [], probeValues } = {}) {
   let out = '';
   for (const c of doc.comps) {
     const selected = selection.has(c.id);
@@ -146,5 +178,6 @@ export function sceneSVG(doc, { selection = new Set(), highlight = new Set(), ju
       `stroke-width="${selected ? 2.5 : 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   for (const [x, y] of junctions) out += `<circle cx="${x}" cy="${y}" r="4" fill="${INK}"/>`;
+  out += probesSVG(doc, selection, probeValues);
   return out;
 }

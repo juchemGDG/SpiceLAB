@@ -10,10 +10,10 @@
 //   Doppelklick auf Bauteil             → Eigenschaften
 //   Tasten: R drehen, M spiegeln, Entf löschen, W Leitung, Strg/⌘+Z/Y, 0 einpassen, +/− zoomen
 
-import { GRID, worldBox } from './view.js';
+import { GRID, worldBox, probeFlag, probeText } from './view.js';
 import { segmentDistance, onSegment } from './geometry.js';
 import { cleanPoints } from './document.js';
-import { INK_SELECTED } from './svg.js';
+import { INK_SELECTED, esc } from './svg.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const SWITCH_TYPES = new Set(['switch', 'button', 'changeover']);
@@ -29,9 +29,12 @@ export class Interaction {
    * @param {(comp) => void} deps.openProperties
    * @param {(text?: string) => void} deps.status
    * @param {() => boolean} [deps.isLive]  läuft die Simulation? (dann lassen sich Schalter bedienen)
+   * @param {() => Map} [deps.probeValues]  aktuelle Messwerte der Messpunkte (für die Fähnchengröße)
+   * @param {(target) => string[]|null} [deps.describe]  Hinweistext beim Überfahren (Leitung/Bauteil)
    */
-  constructor({ doc, view, changed, openProperties, status, isLive }) {
-    Object.assign(this, { doc, view, changed, openProperties, status, isLive });
+  constructor({ doc, view, changed, openProperties, status, isLive, probeValues, describe }) {
+    Object.assign(this, { doc, view, changed, openProperties, status, isLive, probeValues, describe });
+    this.hover = null; // { kind: 'wire'|'comp', … , at: [x, y] } für den Hinweistext
     this.selection = new Set();
     this.tool = 'select';
     this.wiring = null;
@@ -72,6 +75,31 @@ export class Interaction {
       if (x >= x1 - 3 && x <= x2 + 3 && y >= y1 - 3 && y <= y2 + 3) return c;
     }
     return null;
+  }
+
+  /** Messpunkt am Fähnchen (part: 'flag') oder am Punkt (part: 'dot'). */
+  probeAt([x, y], { dotOnly = false } = {}) {
+    const probes = this.doc.probes;
+    for (let i = probes.length - 1; i >= 0; i--) {
+      const p = probes[i];
+      if (!dotOnly) {
+        const f = probeFlag(p, probeText(p, this.probeValues?.()));
+        if (x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h) return { probe: p, part: 'flag' };
+      }
+      if (Math.hypot(p.x - x, p.y - y) <= 8 / this.view.z) return { probe: p, part: 'dot' };
+    }
+    return null;
+  }
+
+  /** Stelle für einen Messpunkt: Anschluss in der Nähe oder Rasterpunkt auf einer Leitung (sonst null). */
+  probeSpot(p) {
+    const pin = this.pinAt(p, 12 / this.view.z);
+    if (pin) return [pin.pin.x, pin.pin.y];
+    const hit = this.wireAt(p, 10 / this.view.z);
+    if (!hit) return null;
+    const [a, b] = [hit.wire.pts[hit.seg], hit.wire.pts[hit.seg + 1]];
+    const clamp = (v, u, w) => Math.min(Math.max(v, Math.min(u, w)), Math.max(u, w));
+    return a[1] === b[1] ? [clamp(snapValue(p[0]), a[0], b[0]), a[1]] : [a[0], clamp(snapValue(p[1]), a[1], b[1])];
   }
 
   wireAt(p, tol) {
@@ -206,6 +234,7 @@ export class Interaction {
 
     const p = this.view.toWorld(e.clientX, e.clientY);
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;
+    this.hover = null;
 
     // Während der Simulation: Schalter bedienen statt auswählen (Ziehen verschiebt weiterhin).
     // Steht vor der Doppelklick-Erkennung, damit schnelles Umschalten keinen Dialog öffnet.
@@ -224,8 +253,19 @@ export class Interaction {
 
     if (this.wiring?.mode === 'click') return this.wireClick(p);
     if (this.tool === 'wire') return this.startWire(this.snapPoint(p), 'drag', e);
+    if (this.tool === 'probe') return this.placeProbe(p);
 
+    // Messpunkt: Fähnchen hat Vorrang; der Punkt selbst erst nach den Anschlüssen (sonst ließe sich
+    // an einem Anschluss mit Messpunkt keine Leitung mehr ziehen)
+    const flagHit = this.probeAt(p);
     const pinHit = this.pinAt(p, 11 / this.view.z);
+    const probeHit = flagHit?.part === 'flag' || !pinHit ? flagHit : null;
+    if (probeHit) {
+      if (multi) this.toggle(probeHit.probe.id);
+      else if (!this.selection.has(probeHit.probe.id)) this.selection = new Set([probeHit.probe.id]);
+      this.startMove(p);
+      return this.changed();
+    }
     if (pinHit && !multi) return this.startWire([pinHit.pin.x, pinHit.pin.y], 'drag', e);
 
     const comp = this.compAt(p);
@@ -262,8 +302,21 @@ export class Interaction {
   startMove(p) {
     this.drag = {
       type: 'move', start: p, moved: false,
-      base: { comps: clone(this.doc.comps), wires: clone(this.doc.wires) },
+      base: { comps: clone(this.doc.comps), wires: clone(this.doc.wires), probes: clone(this.doc.probes) },
     };
+  }
+
+  placeProbe(p) {
+    const spot = this.probeSpot(p);
+    if (!spot) {
+      this.status('Messpunkt bitte auf eine Leitung oder einen Anschluss setzen.');
+      return;
+    }
+    const probe = this.doc.addProbe(...spot);
+    this.doc.commit();
+    this.selection = new Set([probe.id]);
+    this.status(`Messpunkt ${probe.label} gesetzt – weitere Punkte anklicken, Esc beendet.`);
+    this.changed();
   }
 
   onMove(e) {
@@ -277,19 +330,26 @@ export class Interaction {
       this.hoverPin = this.pinAt(p, 12 / this.view.z);
       return this.changed();
     }
-    // Hover: Anschluss hervorheben, Mauszeiger anpassen
+    // Hover: Anschluss hervorheben, Hinweis zu Leitung/Bauteil, Mauszeiger anpassen
     const pinHit = this.pinAt(p, 11 / this.view.z);
     const before = this.hoverPin && `${this.hoverPin.comp.id}:${this.hoverPin.pin.name}`;
     const after = pinHit && `${pinHit.comp.id}:${pinHit.pin.name}`;
     this.hoverComp = this.compAt(p);
-    if (before !== after) {
+    const wireHit = !this.hoverComp && this.wireAt(p, 7 / this.view.z);
+    const hover = this.hoverComp ? { kind: 'comp', comp: this.hoverComp, at: p }
+      : wireHit ? { kind: 'wire', wire: wireHit.wire, at: p }
+        : pinHit ? { kind: 'pin', comp: pinHit.comp, pin: pinHit.pin, at: p } : null;
+    const hoverChanged = (hover?.comp?.id ?? hover?.wire?.id ?? null) !== (this.hover?.comp?.id ?? this.hover?.wire?.id ?? null);
+    this.hover = hover;
+    if (before !== after || hoverChanged || hover) {
       this.hoverPin = pinHit;
       this.changed();
     }
     if (pinHit) this.status(`${pinHit.comp.label || pinHit.comp.type} · Anschluss ${pinHit.pin.name}`);
     else if (before) this.status(); // Anschluss verlassen → wieder die Übersicht
     const operable = this.hoverComp && this.isLive?.() && SWITCH_TYPES.has(this.hoverComp.type);
-    this.view.svg.style.cursor = pinHit || this.tool === 'wire' ? 'crosshair' : operable ? 'pointer' : this.hoverComp ? 'move' : 'default';
+    this.view.svg.style.cursor = pinHit || this.tool !== 'select' ? 'crosshair' : operable ? 'pointer'
+      : this.hoverComp || this.probeAt(p) ? 'move' : 'default';
   }
 
   /** Taster drücken/loslassen: nur ein Zustand während der Bedienung, kein Rückgängig-Schritt. */
@@ -320,7 +380,9 @@ export class Interaction {
       // vom Stand bei Beginn des Ziehens aus neu rechnen (sonst sammeln sich Knicke an)
       this.doc.comps = clone(d.base.comps);
       this.doc.wires = clone(d.base.wires);
+      this.doc.probes = clone(d.base.probes);
       for (const w of this.doc.wires) if (this.selection.has(w.id)) w.pts = w.pts.map(([x, y]) => [x + dx, y + dy]);
+      for (const pr of this.doc.probes) if (this.selection.has(pr.id)) Object.assign(pr, { x: pr.x + dx, y: pr.y + dy });
       this.doc.moveComponents([...this.selection].filter((id) => this.doc.getComp(id)), dx, dy);
     } else if (d.type === 'segment') {
       const base = clone(d.base);
@@ -366,6 +428,14 @@ export class Interaction {
     }
     if (d.type === 'band') this.finishBand();
     if (d.type === 'segment') d.wire.pts = cleanPoints(d.wire.pts);
+    if (d.type === 'move' && d.moved && [...this.selection].every((id) => this.doc.getProbe(id))) {
+      // nur Messpunkte verschoben: auf die nächste Leitung bzw. den nächsten Anschluss einrasten
+      for (const id of this.selection) {
+        const pr = this.doc.getProbe(id);
+        const spot = this.probeSpot([pr.x, pr.y]);
+        if (spot) Object.assign(pr, { x: spot[0], y: spot[1] });
+      }
+    }
     if ((d.type === 'move' || d.type === 'segment') && d.moved) this.doc.commit();
     this.changed();
   }
@@ -385,6 +455,7 @@ export class Interaction {
         Math.max(p[1], w.pts[i - 1][1]) >= y1 && Math.min(p[1], w.pts[i - 1][1]) <= y2);
       if (hit) this.selection.add(w.id);
     }
+    for (const pr of this.doc.probes) if (pr.x >= x1 && pr.x <= x2 && pr.y >= y1 && pr.y <= y2) this.selection.add(pr.id);
   }
 
   onDouble(p) {
@@ -475,7 +546,7 @@ export class Interaction {
   /** Hilfsgrafik: Anschlusspunkte, Leitungsvorschau, Eckpunkte, Auswahlrahmen. */
   overlaySVG() {
     let s = '';
-    const showAll = Boolean(this.wiring) || this.tool === 'wire';
+    const showAll = Boolean(this.wiring) || this.tool !== 'select';
     const hoverKey = this.hoverPin && `${this.hoverPin.comp.id}:${this.hoverPin.pin.name}`;
     for (const comp of this.doc.comps) {
       if (!(showAll || this.selection.has(comp.id) || this.hoverComp?.id === comp.id)) continue;
@@ -495,6 +566,19 @@ export class Interaction {
     if (wires.length === 1 && !this.wiring) {
       const w = this.doc.wires.find((x) => x.id === wires[0]);
       w?.pts.forEach(([x, y]) => { s += `<rect x="${x - 3.5}" y="${y - 3.5}" width="7" height="7" fill="#fff" stroke="${INK_SELECTED}" stroke-width="1.5"/>`; });
+    }
+    const lines = !this.drag && !this.wiring && this.hover ? this.describe?.(this.hover) : null;
+    if (lines?.length) {
+      // Hinweis neben dem Mauszeiger (feste Größe auf dem Bildschirm, unabhängig vom Zoom)
+      const k = 1 / this.view.z;
+      const w = (12 + Math.max(...lines.map((l) => l.length)) * 7) * k;
+      const h = (8 + lines.length * 16) * k;
+      const [x, y] = [this.hover.at[0] + 14 * k, this.hover.at[1] + 14 * k];
+      s += `<g pointer-events="none"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${5 * k}" fill="#0f172a" opacity="0.88"/>`;
+      lines.forEach((line, i) => {
+        s += `<text x="${x + 6 * k}" y="${y + (17 + i * 16) * k}" font-size="${12 * k}" font-family="Helvetica, Arial, sans-serif" fill="#f8fafc">${esc(line)}</text>`;
+      });
+      s += '</g>';
     }
     if (this.band) {
       const { x1, y1, x2, y2 } = this.band;
@@ -521,6 +605,7 @@ export class Interaction {
     if (k === 'r') { this.rotate(); return true; }
     if (k === 'm') { this.mirror(); return true; }
     if (k === 'w') { this.setTool(this.tool === 'wire' ? 'select' : 'wire'); return true; }
+    if (k === 'p') { this.setTool(this.tool === 'probe' ? 'select' : 'probe'); return true; }
     return false;
   }
 
