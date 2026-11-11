@@ -26,6 +26,10 @@ npm run desktop:dev                      # Fenster zum Entwickeln
 npm run desktop:build                    # Programm bauen (src-tauri/target/release/bundle/)
 ```
 
+Pakete für **Windows, Linux und macOS** baut der GitHub-Workflow `.github/workflows/release.yml`
+(Tag `v*` pushen oder unter „Actions“ von Hand starten). Er legt ein Release als **Entwurf** an; die Programme sind
+nicht signiert (Windows: SmartScreen-Warnung, macOS: Rechtsklick → Öffnen). Nur auf macOS bisher getestet.
+
 ## Was geht
 
 - **Bauteile:** Widerstand, Poti, LDR, NTC, Kondensator, Elko, Spule, Transformator, Glühlampe, Motor,

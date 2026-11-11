@@ -1,0 +1,83 @@
+name: SpiceLab Pakete
+
+# Baut die Desktop-Version für Windows, Linux und macOS und legt sie als Release-ENTWURF ab.
+# Startet bei einem Tag wie v0.2.0 oder von Hand (Actions → „SpiceLab Pakete“ → Run workflow).
+# Veröffentlicht wird nichts automatisch: Das Release bleibt ein Entwurf, bis du es freigibst.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+  pakete:
+    name: Paket (${{ matrix.name }})
+    needs: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            args: ''
+          - name: Linux
+            os: ubuntu-22.04 # älteres Ubuntu → läuft auch auf älteren Linux-Systemen
+            args: ''
+          - name: macOS
+            os: macos-latest
+            args: --target universal-apple-darwin # Apple Silicon und Intel in einem Programm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux-Bibliotheken installieren
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Tauri-Werkzeug (einmal gebaut, danach aus dem Cache)
+        uses: actions/cache@v4
+        id: tauri-cli
+        with:
+          path: ~/.cargo/bin/cargo-tauri*
+          key: tauri-cli-2-${{ runner.os }}
+      - if: steps.tauri-cli.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Bauen und als Release-Entwurf hochladen
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tauriScript: cargo tauri
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('spicelab-{0}', github.run_number) }}
+          releaseName: 'SpiceLab ${{ github.ref_type == ''tag'' && github.ref_name || format(''Testbau {0}'', github.run_number) }}'
+          releaseBody: |
+            Desktop-Version von SpiceLab (Windows, Linux, macOS). Die Programme sind nicht signiert:
+            Windows zeigt eine SmartScreen-Warnung („Weitere Informationen → Trotzdem ausführen“),
+            macOS meldet beim ersten Start einen nicht verifizierten Entwickler (Rechtsklick → Öffnen).
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
