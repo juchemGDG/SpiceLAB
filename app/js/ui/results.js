@@ -19,6 +19,7 @@ import { LAMPS } from '../library/lamps.js';
 import { MOTORS } from '../library/motors.js';
 import { TRANSISTORS } from '../library/transistors.js';
 import { MOSFETS } from '../library/mosfets.js';
+import { BUZZERS, BUZZER_START_FRACTION } from '../library/optoelectronics.js';
 
 const VOLTAGE = '#2563eb';
 const CURRENT = '#ea580c';
@@ -32,7 +33,7 @@ const showI = (i) => formatValue(Math.abs(i) < 1e-7 ? 0 : Math.abs(i), 'A');
 const showPotential = (phi) => formatValue(Math.abs(phi) < 1e-4 ? 0 : phi, 'V'); // mit Vorzeichen
 
 /** Bezeichnung der Messgrößen je Bauteiltyp. */
-const QUANTITIES = { npn: ['U_CE', 'I_C'], pnp: ['U_CE', 'I_C'], nmos: ['U_DS', 'I_D'], pmos: ['U_DS', 'I_D'], opamp: ['U_A', 'I_A'] };
+const QUANTITIES = { phototransistor: ['U_CE', 'I_C'], npn: ['U_CE', 'I_C'], pnp: ['U_CE', 'I_C'], nmos: ['U_DS', 'I_D'], pmos: ['U_DS', 'I_D'], opamp: ['U_A', 'I_A'] };
 
 /**
  * Berechnet die Schaltung: Arbeitspunkt oder – mit tran – den Zeitverlauf für das Oszilloskop.
@@ -117,6 +118,15 @@ function readings(comp, result) {
     if (Math.abs(el.I) > (0.25 * voltage) / internalResistance) out.warnings.push('⚠ Kurzschluss – Batterie wird heiß');
   }
   if (comp.type === 'powerSupply' && Math.abs(el.I) > 3) out.warnings.push('⚠ Netzgerät überlastet (über 3 A)');
+  if (comp.type === 'buzzer') {
+    // aktiver Summer: tönt bei richtiger Polung (Pluspol am +-Anschluss) ab 60 % der Nennspannung
+    const b = BUZZERS[p.type];
+    if (el.U >= BUZZER_START_FRACTION * b.ratedVoltage && el.U <= 1.3 * b.ratedVoltage) out.sound = true;
+    if (el.U > 1.3 * b.ratedVoltage) out.warnings.push('⚠ Überspannung – Summer kaputt');
+    if (el.U < -0.5) out.warnings.push('⚠ falsch herum angeschlossen – kein Ton');
+    out.glow = out.sound ? { color: '#a78bfa', level: 0.8 } : undefined;
+    out.lines.push([out.sound ? '♪ Ton' : 'kein Ton', '#0f172a']);
+  }
   if (comp.type === 'led') out.glow = { color: LEDS[p.type].color, level: Math.min(1, Math.max(0, el.I) / 0.02) };
   if (comp.type === 'lamp') {
     const lamp = new Lamp({ name: 'x', nodes: ['a', 'b'], ...LAMPS[p.type] });
@@ -206,6 +216,11 @@ export function currentArrowsSVG(doc, result) {
       `<polygon stroke="none" points="${hx},${hy} ${hx - dx * 9 + nx * 5},${hy - dy * 9 + ny * 5} ${hx - dx * 9 - nx * 5},${hy - dy * 9 - ny * 5}"/></g>`;
   }
   return s;
+}
+
+/** Tönt gerade ein Summer? (für den Ton-Schalter) */
+export function isSounding(doc, result) {
+  return doc.comps.some((c) => c.type === 'buzzer' && readings(c, result)?.sound);
 }
 
 /** Potenzial eines Knotens gegen Masse (0 V), wie ein Spannungsmesser mit schwarzer Leitung an Masse. */

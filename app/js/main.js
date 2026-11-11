@@ -6,7 +6,8 @@ import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
-import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies, currentArrowsSVG } from './ui/results.js';
+import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies, currentArrowsSVG, isSounding } from './ui/results.js';
+import { setBuzzerTone } from './ui/audio.js';
 import { Scope } from './ui/scope.js';
 import { exportSVG, svgToPng } from './ui/export.js';
 import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
@@ -48,6 +49,7 @@ export const app = {
   panel: null, // offenes Messfeld: 'scope' | 'curve' | 'bode' | null
   showAll: false, // Spannung und Strom an allen Bauteilen anzeigen
   showFlow: false, // Pfeile der technischen Stromrichtung
+  tone: false, // Ton des Summers einschalten
   underlay: '', annotations: '', probeValues: new Map(), highlight: new Set(),
 };
 
@@ -127,7 +129,11 @@ function updateScope() {
 
 /** Anzeige aus dem letzten Ergebnis neu aufbauen (z. B. nach „Alle Werte“). */
 function refreshAnnotations() {
-  if (!app.sim) return;
+  if (!app.sim) {
+    setBuzzerTone(false);
+    return;
+  }
+  setBuzzerTone(app.tone && isSounding(doc, app.sim.result));
   const { under, over } = annotationsSVG(doc, app.sim.result, { showAll: app.showAll });
   Object.assign(app, { underlay: under, annotations: over + (app.showFlow ? currentArrowsSVG(doc, app.sim.result) : ''), probeValues: probeValues(doc, app.sim) });
 }
@@ -248,6 +254,7 @@ function resetTo(data, name) {
   ui.selection = new Set();
   Object.assign(app, { live: false, sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: new Set() });
   simulatedKey = null;
+  setBuzzerTone(false);
   updateScope();
   savedKey = docKey();
   setDocName(name);
@@ -351,6 +358,7 @@ $('breadcrumb').addEventListener('click', async () => {
 });
 on('btn-wire', () => ui.setTool(ui.tool === 'wire' ? 'select' : 'wire'));
 on('btn-probe', () => ui.setTool(ui.tool === 'probe' ? 'select' : 'probe'));
+on('btn-tone', () => { app.tone = !app.tone; $('btn-tone').textContent = app.tone ? '🔊 Ton an' : '🔇 Ton'; refreshAnnotations(); render(); });
 on('btn-flow', () => { app.showFlow = !app.showFlow; refreshAnnotations(); render(); });
 on('btn-values', () => { app.showAll = !app.showAll; refreshAnnotations(); render(); });
 on('btn-rot', () => ui.rotate());

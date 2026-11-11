@@ -43,7 +43,18 @@ Euler-Schritt immer Wechsel auf Trapez.
 | Bipolartransistor | Gummel-Poon-Kern wie ngspice (IS, BF, NF, VAF, IKF, ISE, NE, BR, NR, VAR, IKR, ISC, NC, RB, RC, RE, CJE, VJE, MJE, CJC, VJC, MJC, FC, TF, TR) | BC547B/BC557B: Philips-Modelle der Schwestertypen BC546B/BC556B (TR auf 1 ns statt 1e-32 gesetzt); BC337, BD139: an Datenblatt angepasst | Datenblatt (hFE, U_BE, U_CE,sat), ngspice | ohne XTF/VTF/ITF, XCJC, Substrat, Temperatur; **kein Emitter-Basis-Durchbruch** (U_EBO ≈ 6 V) |
 | MOSFET | Level 1 (Shichman-Hodges) + Kanallängenmodulation, RD/RS, CGS/CGD konstant, Bodydiode | aus Datenblattpunkten: U_th, R_DS(on) bei U_GS, Ciss, Crss | Datenblatt, ngspice | kein Unterschwellstrom (sperrt unter U_th schlagartig), Gate-Kapazitäten spannungsunabhängig (keine Miller-Plateau-Form wie im Datenblatt) |
 | Operationsverstärker | Verhaltensmodell: A0, GBW (ein Pol), Anstiegsrate, Aussteuergrenzen, R_out, Strombegrenzung, Ruhestrom | typische Datenblattwerte | Lehrbuch (Verstärker, Komparator, GBW, Slew Rate) | einpolig; kein Gleichtaktbereich, keine Phasenumkehr, Offset 0, kein Eingangsruhestrom; **nicht** mit ngspice abgeglichen (kein Gegenstück) |
+| Fototransistor | NPN ohne Basisanschluss + Fotostrom (∝ Beleuchtungsstärke) von Kollektor zu Basis; I_C ≈ (BF+1)·I_ph | **Richtwert:** 0,8 mA bei 1000 lx (SFH 300) – nicht aus dem Datenblatt abgeleitet | Linearität, Sättigung | Empfindlichkeit streut real um etwa den Faktor 2 (Gruppen -3/-4); keine Spektralabhängigkeit (Lichtart), keine Trägheit |
+| Summer (aktiv) | Widerstand U_N/I_N; „tönt“ bei richtiger Polung ab 60 % U_N (Anzeige und optional Ton) | Richtwerte (5 V/30 mA, 12 V/20 mA) | Polung, Schwelle | Stromaufnahme real nicht konstant; kein Frequenz-/Lautstärkeverlauf |
 | Gleichstrommotor | R, L, Gegenspannung k·ω, Trägheit, Haftreibung | Datenblatt: U_N, n_0, I_0, I_Anlauf | Leerlauf, Anlaufspannung, Last, Anlaufstrom | Last nur als konstantes Moment; keine Bürstenfunken |
+
+## Messungen in der Oberfläche
+
+- **Kennlinie:** Gleichstrom-Arbeitspunkte, Punkt für Punkt von der vorigen Lösung aus (wie `.dc` in SPICE).
+- **Frequenzgang:** wird wie im Labor gemessen (Sinusquelle schrittweise auf Frequenzen stellen, einschwingen lassen,
+  Amplitude und Phase aus ganzen Perioden bestimmen) und nicht über eine linearisierte AC-Analyse wie `.ac` in SPICE.
+  Vorteil: gilt auch für nichtlineare Bauteile bei der gewählten Amplitude. Nachteil: bei sehr hoher Güte
+  (Schwingkreis mit Q > 30) muss die Einschwingzeit länger gewählt werden. Geprüft gegen RC-Tief-/Hochpass
+  (−3 dB, ±45°, −20 dB/Dekade) und Reihenschwingkreis (f₀, Güte).
 
 ## Offene Punkte
 

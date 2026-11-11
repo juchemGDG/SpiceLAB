@@ -69,11 +69,11 @@ export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) 
     throw new CircuitError('Von und Bis müssen verschiedene Zahlen sein.');
   }
   const built = buildNetlist(doc);
-  const scale = source.scale ?? 1;
+  const scale = typeof source.scale === 'function' ? source.scale(source.comp.params) : source.scale ?? 1;
   const floor = source.min ?? -Infinity;
   const shown = Array.from({ length: points }, (_, k) => Math.max(floor, from + ((to - from) * k) / (points - 1)));
   // beim Durchfahren wird ein Kennwert des Bauteils in der Netzliste ersetzt (z. B. voltage, illuminance)
-  const sweep = dcSweep(built.netlist, { element: source.name, parameter: source.param, values: shown.map((v) => v * scale) });
+  const sweep = dcSweep(built.netlist, { element: source.name + (source.elementSuffix ?? ''), parameter: source.param, values: shown.map((v) => v * scale) });
   const gx = reader(x, sweep, built, shown);
   const gy = reader(y, sweep, built, shown);
   const xs = shown.map((_, k) => gx(k));
@@ -82,7 +82,7 @@ export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) 
   // Arbeitspunkt der Schaltung (aktueller Wert des Bauteils) als Marke
   let marker = null;
   try {
-    const spec = built.netlist.elements.find((e) => e.name === source.name);
+    const spec = built.netlist.elements.find((e) => e.name === source.name + (source.elementSuffix ?? ''));
     const now = spec[source.param] / scale;
     const op = operatingPoint(built.netlist);
     const at = (id) => {

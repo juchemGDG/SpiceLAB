@@ -66,7 +66,12 @@ function convert(c) {
       return typed('diode', DIODE_TYPES, '1N4148');
     }
     case 'led': return typed('led', LED_COLORS, 'rot');
-    case 'npn': return typed('npn', NPN_TYPES, 'BC547B');
+    case 'npn': {
+      // SFH 300 u. Ä. werden in SchaltLab als NPN gezeichnet, meist ohne Basisanschluss → Fototransistor
+      if (/sfh\s*300|bpw\s*(40|85)|fototransistor/i.test(c.value ?? '')) return { type: 'phototransistor', params: { type: 'SFH300', illuminance: 500 }, note: `${name}: als Fototransistor SFH 300 übernommen (Basisanschluss entfällt, Helligkeit 500 lx einstellbar)` };
+      return typed('npn', NPN_TYPES, 'BC547B');
+    }
+    case 'phototransistor': return { type: 'phototransistor', params: { type: 'SFH300', illuminance: 500 }, note: c.value && !/sfh\s*300/i.test(c.value) ? `${name}: „${c.value}“ als SFH 300 übernommen` : null };
     case 'pnp': return typed('pnp', PNP_TYPES, 'BC557B');
     case 'nmos': return typed('nmos', NMOS_TYPES, 'BS170');
     case 'pmos': return typed('pmos', PMOS_TYPES, 'IRF9540N');
@@ -74,7 +79,6 @@ function convert(c) {
     case 'opv2': return { skip: `${name}: OPV ohne Versorgungsanschlüsse lässt sich nicht simulieren – ausgelassen (OPV mit V+ und V− verwenden)` };
     case 'switch': return { type: 'switch', params: { closed: Boolean(c.on) } };
     case 'button': return { type: 'button', params: { closed: Boolean(c.on) } };
-    case 'phototransistor': return { skip: `${name}: Fototransistor gibt es in SpiceLab noch nicht – ausgelassen` };
     case 'terminal': return { skip: null }; // reine Beschriftung eines Anschlusses
     default:
       if (c.type.startsWith('mcu_')) return { skip: `${name}: Mikrocontroller-Board wird nicht simuliert – ausgelassen` };

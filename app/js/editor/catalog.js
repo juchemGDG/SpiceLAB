@@ -28,6 +28,7 @@ import { MOSFETS } from '../library/mosfets.js';
 import { OPAMPS } from '../library/opamps.js';
 import { LDRS, NTCS } from '../library/sensors.js';
 import { SOLAR_CELLS } from '../library/solar.js';
+import { PHOTOTRANSISTORS, BUZZERS, photoCurrentPerLux } from '../library/optoelectronics.js';
 
 export const CATEGORIES = ['Versorgung', 'Messgeräte', 'Passive Bauteile', 'Halbleiter', 'Schalter & Taster'];
 
@@ -204,6 +205,12 @@ export const CATALOG = [
     elements: (p, net, name) => [{ type: 'LAMP', name, nodes: [net('1'), net('2')], ...strip(LAMPS[p.type]) }],
   },
   {
+    id: 'buzzer', name: 'Summer (aktiv)', cat: 'Passive Bauteile', symbol: 'buzzer', prefix: 'BZ', hint: 'tönt bei richtiger Polung',
+    params: [sel('type', 'Typ', choices(BUZZERS), 'active5V')],
+    text: (p) => BUZZERS[p.type].label.replace('Summer ', ''),
+    elements: (p, net, name) => [{ type: 'R', name, nodes: [net('+'), net('−')], value: BUZZERS[p.type].ratedVoltage / BUZZERS[p.type].ratedCurrent }],
+  },
+  {
     id: 'motor', name: 'Gleichstrommotor', cat: 'Passive Bauteile', symbol: 'motor', prefix: 'M', hint: 'mit Drehzahl',
     params: [sel('type', 'Typ', choices(MOTORS), 'small3V'), num('loadTorque', 'Lastmoment', 'N·m', 0)],
     text: (p) => MOTORS[p.type].label.split(' (')[0],
@@ -228,6 +235,20 @@ export const CATALOG = [
     params: [sel('type', 'Farbe', choices(LEDS), 'rot')],
     text: (p) => LEDS[p.type].label.replace('LED ', ''),
     elements: (p, net, name) => [{ type: 'D', name, nodes: [net('A'), net('K')], model: LEDS[p.type].model }],
+  },
+  {
+    id: 'phototransistor', name: 'Fototransistor', cat: 'Halbleiter', symbol: 'phototransistor', prefix: 'T', hint: 'Helligkeit einstellbar · C · E',
+    flow: ['C', 'E'],
+    // Beleuchtungsstärke → Fotostrom (Element „<Name>:Iph“): für den Kennlinienschreiber durchfahrbar
+    sweep: { param: 'value', elementSuffix: ':Iph', unit: 'lx', from: 0, to: 1000, label: 'Beleuchtungsstärke',
+      scale: (p) => photoCurrentPerLux(p.type) },
+    params: [sel('type', 'Typ', choices(PHOTOTRANSISTORS), 'SFH300'), num('illuminance', 'Beleuchtungsstärke', 'lx', 500, { min: 0 })],
+    text: (p) => `${PHOTOTRANSISTORS[p.type].label.split(' (')[0]} · ${fmt(p.illuminance, 'lx')}`,
+    elements: (p, net, name) => [
+      { type: 'Q', name, nodes: [net('C'), `${name}:B`, net('E')], polarity: 'npn', model: PHOTOTRANSISTORS[p.type].model },
+      // Fotostrom fließt in der Sperrschicht vom Kollektor zur Basis
+      { type: 'I', name: `${name}:Iph`, nodes: [net('C'), `${name}:B`], value: photoCurrentPerLux(p.type) * p.illuminance },
+    ],
   },
   {
     id: 'npn', name: 'NPN-Transistor', cat: 'Halbleiter', symbol: 'npn', prefix: 'T', hint: 'B · C · E',

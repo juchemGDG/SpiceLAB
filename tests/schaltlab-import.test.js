@@ -42,7 +42,7 @@ test('Bauteile, Werte und Typen werden übernommen; nicht simulierbare Teile mit
   assert.equal(byId.c2.params.value, 150);
   assert.equal(byId.c3.params.type, 'gruen');
   assert.equal(byId.c4.type, 'groundRail');
-  assert.equal(byId.c6.params.type, 'BC547B');
+  assert.equal(byId.c6.type, 'phototransistor', 'SFH 300 gezeichnet als NPN wird Fototransistor');
   assert.equal(byId.c8.type, 'zdiode');
   assert.equal(byId.c8.params.type, '5V1');
   assert.equal(byId.c9.params.closed, true);
@@ -51,7 +51,7 @@ test('Bauteile, Werte und Typen werden übernommen; nicht simulierbare Teile mit
   assert.equal(byId.c5, undefined, 'Schiene ohne Spannung ausgelassen');
   assert.equal(byId.c7, undefined, 'Mikrocontroller ausgelassen');
   assert.equal(data.n, 13);
-  for (const pattern of [/ADC \(GPIO34\)/, /SFH 300-3\/4.*BC547B/, /Mikrocontroller/, /R1 kam doppelt vor/]) {
+  for (const pattern of [/ADC \(GPIO34\)/, /T1.*Fototransistor SFH 300/, /Mikrocontroller/, /R1 kam doppelt vor/]) {
     assert.ok(notes.some((n) => pattern.test(n)), `Hinweis ${pattern} fehlt: ${notes.join(' | ')}`);
   }
 });

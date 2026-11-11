@@ -123,6 +123,16 @@ export const SYMBOLS = {
     pins: [pin(-40, 0, 'A', 'W'), pin(40, 0, 'K', 'E')],
   },
   led: { prims: [...diodeBody, ...lightOut], pins: [pin(-40, 0, 'A', 'W'), pin(40, 0, 'K', 'E')] },
+  phototransistor: {
+    // NPN ohne Basisanschluss, Licht von links (wie in SchaltLab)
+    prims: [C(7, 0, 29, { lw: 1.5 }), L(-6, -20, -6, 20, { lw: 3 }), L(-6, -8, 20, -24), L(20, -24, 20, -40), L(-6, 8, 20, 24),
+      L(20, 24, 20, 40), arrowHead(-6, 8, 16.1, 21.6, 8), ...arrow(-44, -24, -28, -8, 6), ...arrow(-44, -6, -28, 10, 6)],
+    pins: [pin(20, -40, 'C', 'N'), pin(20, 40, 'E', 'S')],
+  },
+  buzzer: {
+    prims: [L(-40, 0, -16, 0), L(16, 0, 40, 0), C(0, 0, 16, { lw: 2 }), T(0, 4, 'BZ', { size: 11, weight: 'bold', upright: 1 }), T(-26, -8, '+', { size: 12 })],
+    pins: [pin(-40, 0, '+', 'W'), pin(40, 0, '−', 'E')],
+  },
   npn: {
     prims: [C(7, 0, 29, { lw: 1.5 }), L(-40, 0, -6, 0), L(-6, -20, -6, 20, { lw: 3 }),
       L(-6, -8, 20, -24), L(20, -24, 20, -40), L(-6, 8, 20, 24), L(20, 24, 20, 40), arrowHead(-6, 8, 16.1, 21.6, 8)],
