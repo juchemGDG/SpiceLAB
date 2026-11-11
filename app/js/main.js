@@ -6,7 +6,10 @@ import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
-import { simulate, annotationsSVG, probeValues, describe } from './ui/results.js';
+import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFrequencies } from './ui/results.js';
+import { Scope } from './ui/scope.js';
+import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
+import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
 import { dialog } from './ui/dialog.js';
 import { openHelp } from './ui/help.js';
@@ -35,23 +38,53 @@ const ui = new Interaction({
 export const app = {
   doc, view, ui, render, setStatus,
   live: false, // nach dem ersten „Simulieren“: bei jeder Änderung neu rechnen
-  sim: null, // letztes erfolgreiches Ergebnis { result, built }
+  sim: null, // letztes erfolgreiches Ergebnis { result, built, transient? }
+  scopeOpen: false, // Oszilloskop offen → Zeitverlauf statt Arbeitspunkt
   showAll: false, // Spannung und Strom an allen Bauteilen anzeigen
   underlay: '', annotations: '', probeValues: new Map(), highlight: new Set(),
 };
 
 // ── Simulation ──
 // Nach dem ersten „Simulieren“ wird bei jeder Änderung der Zeichnung neu gerechnet (live).
+// Bei offenem Oszilloskop wird der Zeitverlauf gerechnet – kurz verzögert, damit beim Ziehen
+// eines Bauteils nicht jede Mausbewegung eine ganze Zeitsimulation auslöst.
 
 const docKey = () => JSON.stringify([doc.comps, doc.wires, doc.probes]);
 let simulatedKey = null;
+let pendingRun = null;
+
+const scope = new Scope($('scope'), {
+  settingsChanged: () => { simulatedKey = null; render(); },
+  cursorChanged: (t) => {
+    const tr = app.sim?.transient;
+    if (!tr) return;
+    app.sim.result = snapshotAt(tr, t ?? tr.time.at(-1)); // Werte zum Cursor-Zeitpunkt („Zeitlupe“)
+    refreshAnnotations();
+    render();
+  },
+});
+
+/** Zeit/Div: eingestellt oder automatisch (drei Perioden der schnellsten Quelle). */
+function timePerDiv() {
+  const s = scope.settings.timePerDiv;
+  return s === 'auto' ? autoTimePerDiv(sourceFrequencies(doc)) : s;
+}
 
 function runSimulation() {
   simulatedKey = docKey();
-  const sim = simulate(doc);
+  const tran = app.scopeOpen ? { stopTime: DIVISIONS_X * timePerDiv(), discharged: scope.settings.discharged } : null;
+  const started = performance.now();
+  const sim = simulate(doc, tran);
   if (sim.ok) {
     Object.assign(app, { sim, highlight: new Set() });
+    if (tran && scope.cursor !== null) sim.result = snapshotAt(sim.transient, Math.min(scope.cursor, tran.stopTime));
     refreshAnnotations();
+    updateScope();
+    if (tran) {
+      setStatus(`Zeitverlauf über ${formatTime(tran.stopTime)} berechnet (${Math.round(performance.now() - started)} ms)` +
+        (doc.probes.length ? ' – Maus über den Bildschirm: Werte zu jedem Zeitpunkt' : ' – setze Messpunkte (P)'));
+      return;
+    }
     const hints = [
       sim.built.reference,
       sim.built.skipped.length ? `Nicht angeschlossen: ${sim.built.skipped.join(', ')}` : null,
@@ -61,8 +94,28 @@ function runSimulation() {
     setStatus(hints.filter(Boolean).join(' · ') || tip);
   } else {
     Object.assign(app, { sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: sim.highlight });
+    updateScope();
     setStatus(sim.message, { error: true });
   }
+}
+
+const formatTime = (t) => `${t >= 1 ? t : t >= 1e-3 ? t * 1e3 : t * 1e6} ${t >= 1 ? 's' : t >= 1e-3 ? 'ms' : 'µs'}`.replace('.', ',');
+
+/** Kurven der Messpunkte an das Oszilloskop geben. */
+function updateScope() {
+  scope.setTimePerDiv(timePerDiv());
+  const tr = app.sim?.transient;
+  if (!app.scopeOpen || !tr) {
+    scope.setData(app.scopeOpen ? { time: [], stopTime: 1, channels: [] } : null);
+    return;
+  }
+  const channels = doc.probes.flatMap((p) => {
+    const net = app.sim.built.probeNets.get(p.id);
+    if (net === null) return [];
+    const values = net === '0' ? new Float64Array(tr.time.length) : tr.potentials[net];
+    return values ? [{ label: p.label, color: probeColor(p), values }] : [];
+  });
+  scope.setData({ time: tr.time, stopTime: tr.time.at(-1), channels });
 }
 
 /** Anzeige aus dem letzten Ergebnis neu aufbauen (z. B. nach „Alle Werte“). */
@@ -73,7 +126,15 @@ function refreshAnnotations() {
 }
 
 function render() {
-  if (app.live && docKey() !== simulatedKey) runSimulation();
+  if (app.live && docKey() !== simulatedKey) {
+    if (app.scopeOpen && simulatedKey !== null) {
+      simulatedKey = docKey(); // nicht bei jedem Neuzeichnen neu planen
+      clearTimeout(pendingRun);
+      pendingRun = setTimeout(() => { simulatedKey = null; render(); }, 200);
+    } else {
+      runSimulation();
+    }
+  }
   const { junctions } = buildNetlist(doc);
   view.render({
     doc,
@@ -91,6 +152,7 @@ function render() {
   $('btn-wire').classList.toggle('active', ui.tool === 'wire');
   $('btn-probe').classList.toggle('active', ui.tool === 'probe');
   $('btn-values').classList.toggle('active', app.showAll);
+  $('btn-scope').classList.toggle('active', app.scopeOpen);
   $('zoom-pct').textContent = `${Math.round(view.z * 100)} %`;
   if (!statusText) $('status').textContent = `${doc.comps.length} Bauteile · ${doc.wires.length} Leitungen`;
 }
@@ -133,6 +195,13 @@ buildPalette($('palette'), {
 
 const on = (id, fn) => $(id).addEventListener('click', fn);
 on('btn-simulate', () => { app.live = true; runSimulation(); render(); });
+on('btn-scope', () => {
+  app.scopeOpen = !app.scopeOpen;
+  $('scope').hidden = !app.scopeOpen;
+  app.live = true; // Öffnen startet die Messung
+  simulatedKey = null;
+  render();
+});
 
 // ── Dateien ──
 
@@ -151,6 +220,8 @@ function resetTo(data, name) {
   doc.load(data);
   ui.selection = new Set();
   Object.assign(app, { live: false, sim: null, underlay: '', annotations: '', probeValues: new Map(), highlight: new Set() });
+  simulatedKey = null;
+  updateScope();
   savedKey = docKey();
   setDocName(name);
   setStatus();
@@ -214,6 +285,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'F5') { e.preventDefault(); $('btn-simulate').click(); }
+  if (e.key.toLowerCase() === 'o' && !e.ctrlKey && !e.metaKey) $('btn-scope').click();
   if (e.key === '0') { view.fit(doc); render(); }
   if (e.key === '+') { $('zoom-in').click(); }
   if (e.key === '-') { $('zoom-out').click(); }

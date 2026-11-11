@@ -158,6 +158,18 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 .dlg-btn.primary { background: var(--accent); color: #fff; }
 .dlg-btn.primary:hover { background: var(--accent-hover); }
 
+/* ─── Oszilloskop ─────────────────────────────────────────── */
+#scope { flex: none; height: 260px; display: flex; gap: 0; border-top: 1px solid var(--topbar-border); background: var(--topbar); }
+#scope[hidden] { display: none; }
+.scope-screen { flex: 1; padding: 8px; min-width: 0; }
+.scope-screen canvas { display: block; width: 100%; height: 100%; border-radius: 8px; touch-action: none; cursor: crosshair; }
+.scope-side { width: 230px; flex-shrink: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--text-dark); overflow-y: auto; }
+.scope-side label { display: flex; flex-direction: column; gap: 3px; font-weight: bold; color: var(--text-dark-muted); }
+.scope-side label.chk { flex-direction: row; align-items: center; gap: 6px; font-weight: normal; color: var(--text-dark); }
+.scope-side select { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; }
+.scope-readout { font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+@media (max-width: 800px) { #scope { height: 340px; flex-direction: column; } .scope-side { width: auto; flex-direction: row; flex-wrap: wrap; } }
+
 /* ─── Hilfe ───────────────────────────────────────────────── */
 #help-box {
   background: #fff; border-radius: var(--radius-modal); width: min(92vw, 760px); max-height: 88vh;
