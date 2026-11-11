@@ -93,6 +93,15 @@ function readings(comp, result) {
     return { lines: [[`U₁ = ${showU(p.U)}`, VOLTAGE], [`U₂ = ${showU(s.U)}`, VOLTAGE]] };
   }
   if (!el) return null;
+  const entry = entryOf(comp);
+  if (entry.instrument) {
+    // Messgerät: Anzeige mit Vorzeichen wie ein Multimeter (Pluspol = linker Anschluss); immer sichtbar
+    const reading = entry.instrument === 'U' ? showPotential(el.U) : formatValue(Math.abs(el.I) < 1e-7 ? 0 : el.I, 'A');
+    const warnings = [];
+    if (entry.instrument === 'I' && Math.abs(el.I) > 3) warnings.push('⚠ sehr großer Strom – Strommesser parallel geschaltet?');
+    if (entry.instrument === 'I' && Math.abs(el.I) > 10) warnings.push('⚠ Messbereich (10 A) überschritten');
+    return { lines: [], display: [`${reading}`, entry.instrument === 'U' ? VOLTAGE : CURRENT], warnings };
+  }
   const [uName, iName] = QUANTITIES[comp.type] ?? ['U', 'I'];
   const out = {
     lines: [[`${uName} = ${showU(el.U)}`, VOLTAGE], [`${iName} = ${showI(el.I)}`, CURRENT]],
@@ -145,6 +154,14 @@ export function annotationsSVG(doc, result, { showAll = false } = {}) {
     let x = last ? last.x : horizontal ? (x1 + x2) / 2 : x2 + 8;
     let y = last ? last.y + 15 : horizontal ? y2 + 16 : (y1 + y2) / 2;
     const anchor = last?.anchor ?? (horizontal ? 'middle' : 'start');
+    if (r.display) {
+      // Anzeige des Messgeräts als kleines „Display“ über dem Symbol
+      const [text, color] = r.display;
+      const w = 14 + text.length * 8;
+      const cx = (x1 + x2) / 2;
+      s += `<rect x="${cx - w / 2}" y="${y1 - 30}" width="${w}" height="22" rx="4" fill="#0f172a"/>` +
+        `<text x="${cx}" y="${y1 - 14}" font-size="14" font-weight="bold" font-family="${FONT}" text-anchor="middle" fill="${color === VOLTAGE ? '#93c5fd' : '#fdba74'}" pointer-events="none">${esc(text)}</text>`;
+    }
     // Messwerte nur auf Wunsch („Alle Werte“), Warnungen immer
     const rows = [...(showAll ? r.lines : []), ...(r.warnings ?? []).map((w) => [w, WARN])];
     for (const [text, color] of rows) {
@@ -184,5 +201,5 @@ export function describe(target, sim) {
   const head = `${comp.label ? `${comp.label} – ` : ''}${entry.name}`;
   if (!sim) return [head];
   const r = readings(comp, sim.result);
-  return [head, ...(r?.lines.map(([text]) => text) ?? [])];
+  return [head, ...(r?.lines.map(([text]) => text) ?? []), ...(r?.display ? [`Anzeige: ${r.display[0]}`] : [])];
 }

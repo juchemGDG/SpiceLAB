@@ -169,6 +169,14 @@ export const SYMBOLS = {
   },
 };
 
+// ── Messgeräte: Kreis mit V bzw. A, Pluspol links ──
+const meter = (letter) => ({
+  prims: [L(-40, 0, -16, 0), L(16, 0, 40, 0), C(0, 0, 16, { lw: 2 }), T(0, 6, letter, { size: 17, weight: 'bold', upright: 1 }), T(-26, -8, '+', { size: 12 })],
+  pins: [pin(-40, 0, '+', 'W'), pin(40, 0, '−', 'E')],
+});
+SYMBOLS.voltmeter = meter('V');
+SYMBOLS.ammeter = meter('A');
+
 // ── Schienen mit einstellbarer Länge (wie SchaltLab): ein Anschluss je Rasterpunkt ──
 
 /** Potentialschiene: dicke Linie, Anschlüsse P0 … Pn nach unten. */

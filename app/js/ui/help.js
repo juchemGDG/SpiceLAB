@@ -26,6 +26,7 @@ const HELP = `
     <li><b>▶ Simulieren</b> (oder <kbd>F5</kbd>) berechnet die Schaltung; LEDs und Lampen leuchten.</li>
     <li><b>Messen wie mit einer Prüfspitze:</b> „Messpunkt“ (<kbd>P</kbd>) wählen und auf eine Leitung oder einen Anschluss klicken. Das Fähnchen zeigt das <b>Potenzial gegen Masse</b>. Messpunkte lassen sich am Fähnchen verschieben und mit <kbd>Entf</kbd> löschen. Die Spannung an einem Bauteil ist der Unterschied der Potenziale an seinen Anschlüssen.</li>
     <li><b>Mit der Maus über eine Leitung</b> fahren zeigt ihr Potenzial, <b>über ein Bauteil</b> seine Spannung <span style="color:#2563eb"><b>U</b></span> und seinen Strom <span style="color:#ea580c"><b>I</b></span>.</li>
+    <li><b>Messgeräte</b> (Spannungsmesser, Strommesser) zeigen ihren Wert immer in einem Display, mit Vorzeichen (Pluspol links). Wie echte Geräte haben sie einen Innenwiderstand: Spannungsmesser 10 MΩ, Strommesser 0,1 Ω. Den Strommesser in Reihe schalten – parallel zu einer Quelle gibt es eine Warnung.</li>
     <li><b>Alle Werte</b> blendet Spannung und Strom an allen Bauteilen ein (z. B. zur Kontrolle).</li>
     <li>Nach dem Simulieren wird bei jeder Änderung automatisch neu gerechnet – ändere z. B. einen Widerstand oder die Helligkeit am LDR und beobachte die Messpunkte.</li>
     <li><b>Schalter</b> und <b>Umschalter</b> schaltest du während der Simulation per Klick um. Ein <b>Taster</b> leitet nur, solange du ihn gedrückt hältst.</li>

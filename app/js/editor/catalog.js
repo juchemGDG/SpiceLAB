@@ -27,7 +27,7 @@ import { OPAMPS } from '../library/opamps.js';
 import { LDRS, NTCS } from '../library/sensors.js';
 import { SOLAR_CELLS } from '../library/solar.js';
 
-export const CATEGORIES = ['Versorgung', 'Passive Bauteile', 'Halbleiter', 'Schalter & Taster'];
+export const CATEGORIES = ['Versorgung', 'Messgeräte', 'Passive Bauteile', 'Halbleiter', 'Schalter & Taster'];
 
 /** Auswahlliste aus einer Bibliothek: [{ value: Schlüssel, label }]. */
 const choices = (lib, filter = () => true) =>
@@ -109,6 +109,22 @@ export const CATALOG = [
     params: [sel('type', 'Typ', choices(SOLAR_CELLS), 'module6V'), num('irradiance', 'Bestrahlungsstärke', 'W/m²', 1000, { min: 0 })],
     text: (p) => `${SOLAR_CELLS[p.type].label} · ${fmt(p.irradiance, 'W/m²')}`,
     elements: (p, net, name) => [{ type: 'PV', name, nodes: [net('+'), net('−')], ...strip(SOLAR_CELLS[p.type]), irradiance: p.irradiance }],
+  },
+
+  // ── Messgeräte (Innenwiderstand wie bei einem Schul-Multimeter) ──
+  {
+    id: 'voltmeter', name: 'Spannungsmesser', cat: 'Messgeräte', symbol: 'voltmeter', prefix: 'V', hint: 'parallel anschließen',
+    instrument: 'U',
+    params: [num('resistance', 'Innenwiderstand', 'Ω', 10e6, { min: 1 })],
+    text: () => '',
+    elements: (p, net, name) => [{ type: 'R', name, nodes: [net('+'), net('−')], value: p.resistance }],
+  },
+  {
+    id: 'ammeter', name: 'Strommesser', cat: 'Messgeräte', symbol: 'ammeter', prefix: 'A', hint: 'in Reihe schalten',
+    instrument: 'I',
+    params: [num('resistance', 'Innenwiderstand', 'Ω', 0.1, { min: 0.001 })],
+    text: () => '',
+    elements: (p, net, name) => [{ type: 'R', name, nodes: [net('+'), net('−')], value: p.resistance }],
   },
 
   // ── Passive Bauteile ──
