@@ -166,6 +166,23 @@ test('Verschieben mit gerader Leitung: Knick wird eingefügt', () => {
   assert.deepEqual(w.pts, [[40, 60], [200, 60], [200, 0]]);
 });
 
+test('Kopieren und Einfügen: neue Bezeichnungen, versetzt, Original unverändert', () => {
+  const { doc, r } = simpleCircuit();
+  const w = doc.wires[0];
+  const p = doc.addProbe(50, -40);
+  const clip = doc.copy([r.id, w.id, p.id]);
+  doc.setParams(r.id, { value: 2200 }); // spätere Änderung wirkt nicht auf die Zwischenablage
+  const ids = doc.paste(clip, 200, 0);
+  assert.equal(ids.length, 3);
+  const copy = doc.getComp(ids[0]);
+  assert.equal(copy.label, 'R2');
+  assert.equal(copy.params.value, 1000);
+  assert.equal(copy.x, r.x + 200);
+  assert.deepEqual(doc.wires.at(-1).pts, w.pts.map(([x, y]) => [x + 200, y]));
+  assert.equal(doc.getProbe(ids[2]).label, 'B');
+  assert.equal(doc.getComp(r.id).label, 'R1');
+});
+
 test('Rückgängig und Wiederholen', () => {
   const doc = new SchematicDocument();
   doc.addComponent('resistor', 0, 0);

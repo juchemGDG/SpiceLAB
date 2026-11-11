@@ -180,6 +180,39 @@ export class SchematicDocument {
     this.wires = this.wires.filter((w) => w.pts.length >= 2);
   }
 
+  // ── Kopieren und Einfügen ──
+
+  /** Auswahl als Zwischenablage (Daten, keine Verweise auf die Zeichnung). */
+  copy(ids) {
+    const set = new Set(ids);
+    return {
+      comps: clone(this.comps.filter((c) => set.has(c.id))),
+      wires: clone(this.wires.filter((w) => set.has(w.id))),
+      probes: clone(this.probes.filter((p) => set.has(p.id))),
+    };
+  }
+
+  /**
+   * Zwischenablage versetzt einfügen; Bauteile bekommen neue Kennungen und Bezeichnungen.
+   * @returns {string[]} Kennungen der eingefügten Elemente (für die neue Auswahl)
+   */
+  paste(clip, dx, dy) {
+    const ids = [];
+    for (const c of clip.comps) {
+      const prefix = CATALOG_BY_ID.get(c.type).prefix;
+      const copy = { ...clone(c), id: `c${++this.n}`, x: c.x + dx, y: c.y + dy, label: this.nextLabel(prefix) };
+      this.comps.push(copy);
+      ids.push(copy.id);
+    }
+    for (const w of clip.wires) {
+      const copy = { id: `w${++this.n}`, pts: w.pts.map(([x, y]) => [x + dx, y + dy]) };
+      this.wires.push(copy);
+      ids.push(copy.id);
+    }
+    for (const p of clip.probes) ids.push(this.addProbe(p.x + dx, p.y + dy).id);
+    return ids;
+  }
+
   // ── Messpunkte ──
 
   getProbe(id) {

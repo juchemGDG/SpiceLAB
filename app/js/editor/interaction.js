@@ -8,7 +8,8 @@
 //   Leitungsstück ziehen                → seitlich verschieben
 //   Fläche ziehen                       → Auswahlrahmen; Leertaste/mittlere Taste/zwei Finger → Ansicht verschieben
 //   Doppelklick auf Bauteil             → Eigenschaften
-//   Tasten: R drehen, M spiegeln, Entf löschen, W Leitung, Strg/⌘+Z/Y, 0 einpassen, +/− zoomen
+//   Tasten: R drehen, M spiegeln, Entf löschen, W Leitung, P Messpunkt, Strg/⌘+Z/Y, Strg/⌘+C/V/A,
+//           0 einpassen, +/− zoomen
 
 import { GRID, worldBox, probeFlag, probeText } from './view.js';
 import { segmentDistance, onSegment } from './geometry.js';
@@ -537,6 +538,22 @@ export class Interaction {
     this.changed();
   }
 
+  copySelection() {
+    if (!this.selection.size) return;
+    this.clipboard = this.doc.copy([...this.selection]);
+    this.pasteCount = 0;
+    this.status(`${this.selection.size} Element(e) kopiert – Strg/⌘+V fügt ein`);
+  }
+
+  /** Einfügen, jedes Mal etwas weiter versetzt (zwei Rasterschritte). */
+  pasteClipboard() {
+    if (!this.clipboard) return;
+    const offset = 2 * GRID * ++this.pasteCount;
+    this.selection = new Set(this.doc.paste(this.clipboard, offset, offset));
+    this.doc.commit();
+    this.changed();
+  }
+
   setTool(tool) {
     this.tool = tool;
     if (tool !== 'wire') this.wiring = null;
@@ -600,6 +617,13 @@ export class Interaction {
     if (e.key === 'Delete' || e.key === 'Backspace') { this.deleteSelection(); return true; }
     if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { this.doc.undo(); this.selection = new Set(); this.changed(); return true; }
     if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { this.doc.redo(); this.selection = new Set(); this.changed(); return true; }
+    if (mod && e.key.toLowerCase() === 'c') { this.copySelection(); return true; }
+    if (mod && e.key.toLowerCase() === 'v') { this.pasteClipboard(); return true; }
+    if (mod && e.key.toLowerCase() === 'a') {
+      this.selection = new Set([...this.doc.comps, ...this.doc.wires, ...this.doc.probes].map((o) => o.id));
+      this.changed();
+      return true;
+    }
     if (mod) return false;
     const k = e.key.toLowerCase();
     if (k === 'r') { this.rotate(); return true; }
