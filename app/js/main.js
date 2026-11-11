@@ -10,6 +10,7 @@ import { simulate, annotationsSVG, probeValues, describe, snapshotAt, sourceFreq
 import { Scope } from './ui/scope.js';
 import { exportSVG, svgToPng } from './ui/export.js';
 import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
+import { EXAMPLES } from './ui/examples.js';
 import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
 import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
@@ -230,6 +231,34 @@ function resetTo(data, name) {
   view.fit(doc);
   render();
 }
+
+on('btn-examples', async () => {
+  const form = document.createElement('div');
+  form.className = 'dlg-form';
+  const label = document.createElement('label');
+  label.textContent = 'Beispiel';
+  const select = document.createElement('select');
+  for (const ex of EXAMPLES) select.add(new Option(`${ex.title} (${ex.level})`, ex.id));
+  label.append(select);
+  const info = document.createElement('div');
+  info.className = 'dlg-hint';
+  const showInfo = () => { info.textContent = EXAMPLES.find((e) => e.id === select.value).text; };
+  select.addEventListener('change', showInfo);
+  showInfo();
+  form.append(label, info);
+  const ok = await dialog({ title: 'Beispielschaltung öffnen', body: form, buttons: [{ label: 'Abbrechen', value: false }, { label: 'Öffnen', value: true, primary: true }] });
+  if (!ok || !(await confirmDiscard(dirty()))) return;
+  const ex = EXAMPLES.find((e) => e.id === select.value);
+  resetTo(ex.build().toJSON(), ex.title);
+  // gleich simulieren; bei Zeitvorgängen mit offenem Oszilloskop
+  app.live = true;
+  app.scopeOpen = Boolean(ex.scope);
+  $('scope').hidden = !app.scopeOpen;
+  simulatedKey = null;
+  render();
+  view.fit(doc);
+  render();
+});
 
 on('btn-new', async () => {
   if (await confirmDiscard(dirty())) resetTo({ comps: [], wires: [], n: 0 }, 'Neue Schaltung');

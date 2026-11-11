@@ -159,8 +159,8 @@ export function annotationsSVG(doc, result, { showAll = false } = {}) {
       const [text, color] = r.display;
       const w = 14 + text.length * 8;
       const cx = (x1 + x2) / 2;
-      s += `<rect x="${cx - w / 2}" y="${y1 - 30}" width="${w}" height="22" rx="4" fill="#0f172a"/>` +
-        `<text x="${cx}" y="${y1 - 14}" font-size="14" font-weight="bold" font-family="${FONT}" text-anchor="middle" fill="${color === VOLTAGE ? '#93c5fd' : '#fdba74'}" pointer-events="none">${esc(text)}</text>`;
+      s += `<rect x="${cx - w / 2}" y="${y1 - 50}" width="${w}" height="22" rx="4" fill="#0f172a"/>` +
+        `<text x="${cx}" y="${y1 - 34}" font-size="14" font-weight="bold" font-family="${FONT}" text-anchor="middle" fill="${color === VOLTAGE ? '#93c5fd' : '#fdba74'}" pointer-events="none">${esc(text)}</text>`;
     }
     // Messwerte nur auf Wunsch („Alle Werte“), Warnungen immer
     const rows = [...(showAll ? r.lines : []), ...(r.warnings ?? []).map((w) => [w, WARN])];
