@@ -172,6 +172,7 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 .scope-side input { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; width: 100%; }
 .scope-side input.invalid { border-color: var(--danger); }
 .scope-readout { font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+#bode { height: 340px; }
 @media (max-width: 800px) { .panel { height: 340px; flex-direction: column; } .scope-side { width: auto; flex-direction: row; flex-wrap: wrap; } }
 
 /* ─── Hilfe ───────────────────────────────────────────────── */

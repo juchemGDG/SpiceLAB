@@ -12,6 +12,7 @@ import { exportSVG, svgToPng } from './ui/export.js';
 import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
 import { EXAMPLES } from './ui/examples.js';
 import { CurvePanel } from './ui/curve.js';
+import { BodePanel } from './ui/bode.js';
 import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
 import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
@@ -131,10 +132,10 @@ function refreshAnnotations() {
 }
 
 function render() {
-  if (app.panel === 'curve' && docKey() !== curveKey) {
+  if ((app.panel === 'curve' || app.panel === 'bode') && docKey() !== curveKey) {
     curveKey = docKey();
     clearTimeout(curveTimer);
-    curveTimer = setTimeout(() => curve.refresh(), 250);
+    curveTimer = setTimeout(() => (app.panel === 'curve' ? curve : bode).refresh(), 250);
   }
   if (app.live && docKey() !== simulatedKey) {
     if (app.scopeOpen && simulatedKey !== null) {
@@ -209,6 +210,7 @@ const on = (id, fn) => $(id).addEventListener('click', fn);
 on('btn-simulate', () => { app.live = true; runSimulation(); render(); });
 // Messfelder unter der Zeichnung: Oszilloskop, Kennlinie, Frequenzgang – immer nur eines
 const curve = new CurvePanel($('curve'), () => doc, (text, error) => setStatus(text, { error }));
+const bode = new BodePanel($('bode'), () => doc, (text, error) => setStatus(text, { error }));
 let curveKey = null;
 let curveTimer = null;
 

@@ -45,6 +45,13 @@ const HELP = `
   </ul>
 </section>
 <section>
+  <h3>Kennlinie und Frequenzgang</h3>
+  <ul>
+    <li><b>⌇ Kennlinie</b> (<kbd>K</kbd>): Ein Wert wird schrittweise durchgefahren – z. B. die Spannung des Netzgeräts, die Helligkeit am LDR oder die Temperatur am NTC. Darunter trägst du zwei Größen gegeneinander auf, z. B. <b>Strom durch die LED über der Spannung an der LED</b>. Der orange Punkt ist der Arbeitspunkt deiner Schaltung. Für die Kennlinie einer Z-Diode fährst du das Netzgerät ins Negative (z. B. von −10 V bis 0 V).</li>
+    <li><b>⌁ Frequenzgang</b> (<kbd>F</kbd>): Wie im Labor wird die Wechselspannungsquelle nacheinander auf viele Frequenzen gestellt; gezeigt werden <b>Verstärkung (dB)</b> und <b>Phasenverschiebung</b> an den Messpunkten gegenüber dem Eingang. Rechts steht, wo die Verstärkung um 3 dB gefallen ist (Grenzfrequenz).</li>
+  </ul>
+</section>
+<section>
   <h3>Zahlen eingeben</h3>
   <ul>
     <li>Komma oder Punkt: <code>4,7</code> = <code>4.7</code>. Vorsätze: <code>p n µ (oder u) m k M G</code>, z. B. <code>4,7k</code>, <code>4k7</code>, <code>100n</code>, <code>2,2 mH</code>.</li>

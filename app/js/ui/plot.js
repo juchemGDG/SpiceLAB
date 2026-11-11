@@ -49,10 +49,11 @@ export function logTicks(min, max) {
  * @param {{x: number, y: number, color: string}} [o.marker]  hervorgehobener Punkt (z. B. Arbeitspunkt)
  * @param {number} [o.cursorX]  senkrechte Cursorlinie
  * @param {number[]} [o.yRange] feste Grenzen [min, max]
+ * @param {boolean} [o.compactX] keine x-Beschriftung (für übereinander angeordnete Diagramme)
  * @returns {{ toX: (x: number) => number, toY: (y: number) => number, fromPx: (px: number) => number, area: object }}
  */
 export function drawPlot(g, r, o) {
-  const pad = { l: 62, r: 14, t: 14, b: 38 };
+  const pad = { l: 62, r: 28, t: 14, b: o.compactX ? 6 : 38 }; // compactX: Plot ohne x-Beschriftung (obere Hälfte)
   const area = { x: r.x + pad.l, y: r.y + pad.t, w: r.w - pad.l - pad.r, h: r.h - pad.t - pad.b };
   g.save();
   g.fillStyle = '#fff';
@@ -103,7 +104,7 @@ export function drawPlot(g, r, o) {
     const x = Math.round(toX(t.v)) + 0.5;
     g.strokeStyle = t.major ? '#cbd5e1' : GRID;
     g.beginPath(); g.moveTo(x, area.y); g.lineTo(x, area.y + area.h); g.stroke();
-    if (t.major) g.fillText(o.formatX(t.v), x, area.y + area.h + 5);
+    if (t.major && !o.compactX) g.fillText(o.formatX(t.v), x, area.y + area.h + 5);
   }
   g.strokeStyle = AXIS;
   g.strokeRect(area.x + 0.5, area.y + 0.5, area.w, area.h);
