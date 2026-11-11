@@ -31,10 +31,14 @@ export function quantities(doc, source) {
   return out;
 }
 
-/** Sinnvolle Voreinstellung: Spannung am ersten Bauteil gegen seinen Strom (Diodenkennlinie, Widerstandskennlinie). */
+/**
+ * Sinnvolle Voreinstellung: Spannung am „interessantesten“ Bauteil gegen seinen Strom –
+ * Halbleiter und Lampen vor Widerständen (Dioden-, LED-, Lampenkennlinie).
+ */
 export function defaultAxes(doc, source) {
-  const device = doc.comps.find((c) => MEASURABLE(c) && c !== source.comp && !entryOf(c).sweep && !entryOf(c).instrument)
-    ?? doc.comps.find((c) => MEASURABLE(c) && c !== source.comp);
+  const candidates = doc.comps.filter((c) => MEASURABLE(c) && c !== source.comp && !entryOf(c).sweep && !entryOf(c).instrument);
+  const device = candidates.find((c) => entryOf(c).cat === 'Halbleiter' || c.type === 'lamp')
+    ?? candidates[0] ?? doc.comps.find((c) => MEASURABLE(c) && c !== source.comp);
   if (!device) return { x: 'sweep', y: `I:${nameOf(source.comp)}` };
   return { x: `U:${nameOf(device)}`, y: `I:${nameOf(device)}` };
 }

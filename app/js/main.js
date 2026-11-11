@@ -11,6 +11,7 @@ import { Scope } from './ui/scope.js';
 import { exportSVG, svgToPng } from './ui/export.js';
 import { isSchaltLab, fromSchaltLab } from './ui/schaltlab-import.js';
 import { EXAMPLES } from './ui/examples.js';
+import { CurvePanel } from './ui/curve.js';
 import { autoTimePerDiv, DIVISIONS_X } from './ui/scale.js';
 import { probeColor } from './editor/view.js';
 import { download, pickFile, parseSchematic, confirmDiscard, FILE_SUFFIX } from './ui/files.js';
@@ -43,6 +44,7 @@ export const app = {
   live: false, // nach dem ersten „Simulieren“: bei jeder Änderung neu rechnen
   sim: null, // letztes erfolgreiches Ergebnis { result, built, transient? }
   scopeOpen: false, // Oszilloskop offen → Zeitverlauf statt Arbeitspunkt
+  panel: null, // offenes Messfeld: 'scope' | 'curve' | 'bode' | null
   showAll: false, // Spannung und Strom an allen Bauteilen anzeigen
   underlay: '', annotations: '', probeValues: new Map(), highlight: new Set(),
 };
@@ -129,6 +131,11 @@ function refreshAnnotations() {
 }
 
 function render() {
+  if (app.panel === 'curve' && docKey() !== curveKey) {
+    curveKey = docKey();
+    clearTimeout(curveTimer);
+    curveTimer = setTimeout(() => curve.refresh(), 250);
+  }
   if (app.live && docKey() !== simulatedKey) {
     if (app.scopeOpen && simulatedKey !== null) {
       simulatedKey = docKey(); // nicht bei jedem Neuzeichnen neu planen
@@ -156,6 +163,8 @@ function render() {
   $('btn-probe').classList.toggle('active', ui.tool === 'probe');
   $('btn-values').classList.toggle('active', app.showAll);
   $('btn-scope').classList.toggle('active', app.scopeOpen);
+  $('btn-curve').classList.toggle('active', app.panel === 'curve');
+  $('btn-bode').classList.toggle('active', app.panel === 'bode');
   $('zoom-pct').textContent = `${Math.round(view.z * 100)} %`;
   if (!statusText) $('status').textContent = `${doc.comps.length} Bauteile · ${doc.wires.length} Leitungen`;
 }
@@ -198,13 +207,24 @@ buildPalette($('palette'), {
 
 const on = (id, fn) => $(id).addEventListener('click', fn);
 on('btn-simulate', () => { app.live = true; runSimulation(); render(); });
-on('btn-scope', () => {
-  app.scopeOpen = !app.scopeOpen;
-  $('scope').hidden = !app.scopeOpen;
-  app.live = true; // Öffnen startet die Messung
+// Messfelder unter der Zeichnung: Oszilloskop, Kennlinie, Frequenzgang – immer nur eines
+const curve = new CurvePanel($('curve'), () => doc, (text, error) => setStatus(text, { error }));
+let curveKey = null;
+let curveTimer = null;
+
+function setPanel(name) {
+  app.panel = app.panel === name ? null : name;
+  app.scopeOpen = app.panel === 'scope';
+  for (const id of ['scope', 'curve', 'bode']) $(id).hidden = app.panel !== id;
+  if (app.scopeOpen) app.live = true; // Öffnen startet die Messung
   simulatedKey = null;
+  curveKey = null;
+  if (app.panel !== 'scope' && app.live) simulatedKey = null; // zurück zum Arbeitspunkt
   render();
-});
+}
+on('btn-scope', () => setPanel('scope'));
+on('btn-curve', () => setPanel('curve'));
+on('btn-bode', () => setPanel('bode'));
 
 // ── Dateien ──
 
@@ -252,8 +272,9 @@ on('btn-examples', async () => {
   resetTo(ex.build().toJSON(), ex.title);
   // gleich simulieren; bei Zeitvorgängen mit offenem Oszilloskop
   app.live = true;
+  app.panel = ex.scope ? 'scope' : null;
   app.scopeOpen = Boolean(ex.scope);
-  $('scope').hidden = !app.scopeOpen;
+  for (const id of ['scope', 'curve', 'bode']) $(id).hidden = app.panel !== id;
   simulatedKey = null;
   render();
   view.fit(doc);
@@ -351,6 +372,8 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.key === 'F5') { e.preventDefault(); $('btn-simulate').click(); }
   if (e.key.toLowerCase() === 'o' && !e.ctrlKey && !e.metaKey) $('btn-scope').click();
+  if (e.key.toLowerCase() === 'k' && !e.ctrlKey && !e.metaKey) $('btn-curve').click();
+  if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) $('btn-bode').click();
   if (e.key === '0') { view.fit(doc); render(); }
   if (e.key === '+') { $('zoom-in').click(); }
   if (e.key === '-') { $('zoom-out').click(); }

@@ -29,7 +29,7 @@ test('Quellen, Messgrößen und Voreinstellung', () => {
   assert.deepEqual(sources.map((s) => s.name), ['U1']);
   const ids = quantities(d, sources[0]).map((q) => q.id);
   assert.deepEqual(ids, ['sweep', 'U:U1', 'I:U1', 'U:R1', 'I:R1', 'U:D1', 'I:D1']);
-  assert.deepEqual(defaultAxes(d, sources[0]), { x: 'U:R1', y: 'I:R1' }, 'erstes Bauteil nach der Quelle');
+  assert.deepEqual(defaultAxes(d, sources[0]), { x: 'U:D1', y: 'I:D1' }, 'Halbleiter vor Widerstand');
   assert.ok(x);
 });
 
