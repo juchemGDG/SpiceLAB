@@ -3,7 +3,8 @@
 // neu sind Quellen, Lampe, Z-Diode, Solarzelle, LDR, NTC, Motor, Umschalter und Transformator.
 //
 // Grundformen:  line {x1,y1,x2,y2}  rect {x,y,w,h}  circle {cx,cy,r}  poly {pts, closed}  text {x,y,text}
-// Optionen:     lw (Linienstärke), fill (ausgefüllt), dash, size/anchor (Text)
+// Optionen:     lw (Linienstärke), fill (ausgefüllt), dash, size/anchor (Text),
+//                upright (Zeichen bleibt beim Drehen aufrecht, z. B. Sinuswelle; Texte immer)
 // Anschluss:    { x, y, name, d }   d = Richtung, in die die Leitung abgeht (W, E, N, S)
 
 const rnd = (v) => Math.round(v * 100) / 100;
@@ -62,11 +63,11 @@ export const SYMBOLS = {
     pins: [pin(-40, 0, '+', 'W'), pin(40, 0, '−', 'E')],
   },
   acSource: {
-    prims: [...circleSource, PL([[-9, 0], [-6, -5], [-3, -6], [0, -3], [0, 3], [3, 6], [6, 5], [9, 0]], { lw: 2 })],
+    prims: [...circleSource, PL([[-9, 0], [-6, -5], [-3, -6], [0, -3], [0, 3], [3, 6], [6, 5], [9, 0]], { lw: 2, upright: 1 })],
     pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')],
   },
   squareSource: {
-    prims: [...circleSource, PL([[-9, 5], [-9, -5], [0, -5], [0, 5], [9, 5], [9, -5]], { lw: 2 })],
+    prims: [...circleSource, PL([[-9, 5], [-9, -5], [0, -5], [0, 5], [9, 5], [9, -5]], { lw: 2, upright: 1 })],
     pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')],
   },
   currentSource: {
@@ -111,7 +112,7 @@ export const SYMBOLS = {
     pins: twoPin,
   },
   motor: {
-    prims: [L(-40, 0, -16, 0), L(16, 0, 40, 0), C(0, 0, 16, { lw: 2 }), T(0, 5, 'M', { size: 15, weight: 'bold' }), L(-5, 10, 5, 10, { lw: 1.2 })],
+    prims: [L(-40, 0, -16, 0), L(16, 0, 40, 0), C(0, 0, 16, { lw: 2 }), T(0, 5, 'M', { size: 15, weight: 'bold', upright: 1 }), L(-5, 10, 5, 10, { lw: 1.2, upright: 1 })],
     pins: [pin(-40, 0, '+', 'W'), pin(40, 0, '−', 'E')],
   },
 

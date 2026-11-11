@@ -28,8 +28,34 @@ export function primitiveSVG(p, color = INK, width = 2) {
   }
 }
 
-/** Alle Grundformen eines Schaltzeichens (closed: Schalter geschlossen darstellen). */
+/** Bleibt die Grundform beim Drehen aufrecht? (Texte und mit upright markierte Zeichen) */
+const isUpright = (p) => p.t === 'text' || p.upright;
+
+/** Alle Grundformen eines Schaltzeichens ohne Drehung (Vorschau in der Bauteilleiste). */
 export function symbolSVG(symbol, { color = INK, closed = false } = {}) {
   const prims = closed && symbol.closedPrims ? symbol.closedPrims : symbol.prims;
   return prims.map((p) => primitiveSVG(p, color)).join('');
+}
+
+/**
+ * Schaltzeichen an einem Bauteil: Linien drehen und spiegeln mit, Texte und „aufrechte“ Zeichen
+ * (z. B. die Sinuswelle) wandern mit, bleiben aber lesbar.
+ * @param {string} transform  SVG-transform des Bauteils (geometry.svgTransform)
+ * @param {(pt: number[]) => number[]} toWorld  Symbolpunkt → Zeichnungspunkt
+ */
+export function placedSymbolSVG(symbol, transform, toWorld, { color = INK, closed = false } = {}) {
+  const prims = closed && symbol.closedPrims ? symbol.closedPrims : symbol.prims;
+  let out = `<g transform="${transform}">${prims.filter((p) => !isUpright(p)).map((p) => primitiveSVG(p, color)).join('')}</g>`;
+  const [ox, oy] = toWorld([0, 0]);
+  for (const p of prims.filter(isUpright)) {
+    if (p.upright) {
+      // Zeichen in der Symbolmitte (Welle, „M“): bleibt als Ganzes aufrecht um den Mittelpunkt
+      out += `<g transform="translate(${ox} ${oy})">${primitiveSVG(p, color)}</g>`;
+    } else {
+      // Text neben dem Symbol (z. B. „+“ am Anschluss): Lage dreht mit, Schrift bleibt lesbar
+      const [x, y] = toWorld([p.x, p.y]);
+      out += primitiveSVG({ ...p, x, y }, color);
+    }
+  }
+  return out;
 }

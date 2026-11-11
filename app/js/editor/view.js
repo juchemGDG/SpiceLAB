@@ -5,7 +5,7 @@
 import { CATALOG_BY_ID } from './catalog.js';
 import { SYMBOLS, symbolBounds } from './symbols.js';
 import { svgTransform, toWorld } from './geometry.js';
-import { symbolSVG, INK, INK_SELECTED, esc } from './svg.js';
+import { placedSymbolSVG, INK, INK_SELECTED, esc } from './svg.js';
 
 export const GRID = 20;
 const FONT = 'Helvetica, Arial, sans-serif';
@@ -167,7 +167,7 @@ export function sceneSVG(doc, { selection = new Set(), highlight = new Set(), ju
     }
     const entry = entryOf(c);
     const closed = entry.closed?.(c.params) ?? false;
-    out += `<g transform="${svgTransform(c)}">${symbolSVG(symbolOf(c), { color, closed })}</g>`;
+    out += placedSymbolSVG(symbolOf(c), svgTransform(c), (pt) => toWorld(c, pt), { color, closed });
     for (const l of labelLines(c)) {
       out += `<text x="${l.x}" y="${l.y}" font-size="${l.fs}" font-family="${FONT}" text-anchor="${l.anchor}" fill="${INK}">${esc(l.text)}</text>`;
     }
