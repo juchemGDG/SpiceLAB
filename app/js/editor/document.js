@@ -2,6 +2,7 @@
 //
 //   comps: [{ id, type, label, x, y, rot, mir, params }]   type = Katalog-Kennung
 //   wires: [{ id, pts: [[x, y], …] }]                       rechtwinklige Linienzüge
+//   probes: [{ id, label, x, y }]                             Messpunkte (Prüfspitzen) auf Leitungen/Anschlüssen
 //
 // Alle Änderungen laufen über Methoden dieser Klasse; commit() legt einen Rückgängig-Schritt an.
 // Keine DOM-Abhängigkeit – die Klasse ist in Node testbar.
@@ -24,6 +25,7 @@ export class SchematicDocument {
   load(data) {
     this.comps = clone(data.comps ?? []);
     this.wires = clone(data.wires ?? []);
+    this.probes = clone(data.probes ?? []);
     this.n = data.n ?? 0;
     this.history = [this.#snapshot()];
     this.historyIndex = 0;
@@ -31,13 +33,13 @@ export class SchematicDocument {
 
   /** Daten zum Speichern. */
   toJSON() {
-    return { app: 'SpiceLab', version: FILE_VERSION, comps: this.comps, wires: this.wires, n: this.n };
+    return { app: 'SpiceLab', version: FILE_VERSION, comps: this.comps, wires: this.wires, probes: this.probes, n: this.n };
   }
 
   // ── Rückgängig / Wiederholen ──
 
   #snapshot() {
-    return JSON.stringify({ comps: this.comps, wires: this.wires, n: this.n });
+    return JSON.stringify({ comps: this.comps, wires: this.wires, probes: this.probes, n: this.n });
   }
 
   /** Aktuellen Stand als Rückgängig-Schritt festhalten (nur wenn sich etwas geändert hat). */
@@ -73,6 +75,7 @@ export class SchematicDocument {
     const o = JSON.parse(snap);
     this.comps = o.comps;
     this.wires = o.wires;
+    this.probes = o.probes;
     this.n = o.n;
   }
 
@@ -116,7 +119,10 @@ export class SchematicDocument {
     const after = new Map(moved.flatMap((c) => this.pins(c).map((p) => [`${c.id}:${p.name}`, [p.x, p.y]])));
     for (const { comp, name, at } of before) {
       const to = after.get(`${comp.id}:${name}`);
-      if (!samePoint(at, to)) this.#moveWireEnds(at, to);
+      if (samePoint(at, to)) continue;
+      this.#moveWireEnds(at, to);
+      // Messpunkte, die auf dem Anschluss sitzen, wandern mit
+      for (const p of this.probes) if (p.x === at[0] && p.y === at[1]) Object.assign(p, { x: to[0], y: to[1] });
     }
   }
 
@@ -174,12 +180,28 @@ export class SchematicDocument {
     this.wires = this.wires.filter((w) => w.pts.length >= 2);
   }
 
+  // ── Messpunkte ──
+
+  getProbe(id) {
+    return this.probes.find((p) => p.id === id);
+  }
+
+  /** Messpunkt setzen; Bezeichnung A, B, C … (die erste freie). */
+  addProbe(x, y) {
+    const used = new Set(this.probes.map((p) => p.label));
+    const label = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find((l) => !used.has(l)) ?? `M${this.probes.length + 1}`;
+    const probe = { id: `p${++this.n}`, label, x, y };
+    this.probes.push(probe);
+    return probe;
+  }
+
   // ── Löschen ──
 
   delete(ids) {
     const set = new Set(ids);
     this.comps = this.comps.filter((c) => !set.has(c.id));
     this.wires = this.wires.filter((w) => !set.has(w.id));
+    this.probes = this.probes.filter((p) => !set.has(p.id));
   }
 }
 

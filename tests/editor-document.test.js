@@ -116,6 +116,35 @@ test('Transformator: die Sekundärseite bekommt einen eigenen Bezugspunkt', () =
   operatingPoint(built.netlist); // berechenbar
 });
 
+test('Messpunkte: Bezeichnung A, B …, Knoten auf Leitung/Anschluss, Potenzial, kein Verbindungspunkt', () => {
+  const { doc, r } = simpleCircuit();
+  doc.addComponent('gnd', 100, 40);
+  const junctionsBefore = buildNetlist(doc).junctions;
+  const a = doc.addProbe(50, -40); // mitten auf der oberen Leitung
+  const b = doc.addProbe(100, 40); // auf dem unteren Anschluss des Widerstands
+  const c = doc.addProbe(500, 500); // nirgends
+  assert.deepEqual([a.label, b.label, c.label], ['A', 'B', 'C']);
+  const built = buildNetlist(doc);
+  assert.deepEqual(built.junctions, junctionsBefore, 'Messpunkte ändern nichts an den Verbindungspunkten');
+  assert.equal(built.probeNets.get(a.id), built.pinNets.get(r.id)['1']);
+  assert.equal(built.probeNets.get(b.id), '0');
+  assert.equal(built.probeNets.get(c.id), null);
+  const result = operatingPoint(built.netlist);
+  assert.ok(Math.abs(result.potentials[built.probeNets.get(a.id)] - 9 * 1000 / 1001.5) < 1e-6);
+  // gelöschte Bezeichnung wird wiederverwendet; Messpunkte werden gespeichert
+  doc.delete([a.id]);
+  assert.equal(doc.addProbe(0, 0).label, 'A');
+  assert.equal(new SchematicDocument(doc.toJSON()).probes.length, 3);
+});
+
+test('Messpunkt auf einem Anschluss wandert beim Verschieben des Bauteils mit', () => {
+  const doc = new SchematicDocument();
+  const r = doc.addComponent('resistor', 0, 0);
+  const p = doc.addProbe(40, 0);
+  doc.moveComponents([r.id], 20, 40);
+  assert.deepEqual([p.x, p.y], [60, 40]);
+});
+
 test('Drehen: angeschlossene Leitungen laufen mit und bleiben rechtwinklig', () => {
   const doc = new SchematicDocument();
   const r = doc.addComponent('resistor', 0, 0);

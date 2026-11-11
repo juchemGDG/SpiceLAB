@@ -34,6 +34,7 @@ class Groups {
  * @returns {{
  *   netlist: {elements: object[]},
  *   pinNets: Map<string, Record<string, string>>,  // Bauteil-ID → Anschluss → Knotenname (alle angeschlossenen)
+ *   probeNets: Map<string, string|null>,           // Messpunkt-ID → Knotenname (null: nirgends angeschlossen)
  *   junctions: number[][],                         // Punkte für Verbindungspunkte
  *   skipped: string[],                             // Bezeichnungen nicht angeschlossener Bauteile
  *   isolated: string[],                            // Bauteile in Teilen ohne Quelle (übersprungen)
@@ -59,6 +60,16 @@ export function buildNetlist(doc) {
         groups.union(key(pt), key(w.pts[i - 1]));
         if (key(pt) !== key(w.pts[i - 1]) && key(pt) !== key(w.pts[i])) throughPoints.add(`${key(pt)}|${w.id}:${i}`);
       }
+    }
+  }
+
+  // Messpunkte gehören zu der Leitung, auf der sie liegen (sie zählen nicht als Leitungsarm)
+  const probes = doc.probes ?? [];
+  for (const pr of probes) {
+    const pt = [pr.x, pr.y];
+    groups.find(key(pt));
+    for (const w of doc.wires) {
+      for (let i = 1; i < w.pts.length; i++) if (onSegment(pt, w.pts[i - 1], w.pts[i])) groups.union(key(pt), key(w.pts[i - 1]));
     }
   }
 
@@ -150,10 +161,19 @@ export function buildNetlist(doc) {
     if (!skippedComps.has(comp)) elements.push(...entry.elements(comp.params, (pinName) => map[pinName], comp.label || comp.id));
   }
 
+  // 8. Knoten der Messpunkte (null: liegt auf keiner Leitung und keinem Anschluss)
+  const probeNets = new Map(probes.map((pr) => {
+    const g = groups.find(key([pr.x, pr.y]));
+    if (!wired.has(g) && !pinCount.get(g)) return [pr.id, null];
+    const net = netName([pr.x, pr.y]);
+    return [pr.id, rename.get(net) ?? net];
+  }));
+
   const junctions = [...degree].filter(([, n]) => n >= 3).map(([k]) => k.split(',').map(Number));
   return {
     netlist: { elements },
     pinNets,
+    probeNets,
     junctions,
     skipped,
     isolated: [...new Set(isolated)],
