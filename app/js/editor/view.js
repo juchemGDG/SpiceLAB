@@ -39,27 +39,35 @@ export function worldBox(comp) {
 
 /**
  * Beschriftung (Bezeichnung + Wert) neben dem Bauteil – wie SchaltLab:
- * liegende Bauteile oben/unten, stehende rechts daneben.
+ * liegende Bauteile oben/unten, stehende rechts daneben; comp.lo = { dx, dy } verschiebt sie.
  */
 export function labelLines(comp) {
   const entry = entryOf(comp);
   const texts = [comp.label, entry.text(comp.params)].filter(Boolean);
   if (!texts.length) return [];
   const fs = 13;
+  const { dx = 0, dy = 0 } = comp.lo ?? {};
   const [x1, y1, x2, y2] = worldBox(comp);
   if (x2 - x1 >= (y2 - y1) * 1.15) {
-    const cx = (x1 + x2) / 2;
+    const cx = (x1 + x2) / 2 + dx;
     const lines = [];
-    if (texts[0]) lines.push({ text: texts[0], x: cx, y: y1 - 6, anchor: 'middle', fs });
-    if (texts[1]) lines.push({ text: texts[1], x: cx, y: y2 + fs + 2, anchor: 'middle', fs });
+    if (texts[0]) lines.push({ text: texts[0], x: cx, y: y1 - 6 + dy, anchor: 'middle', fs });
+    if (texts[1]) lines.push({ text: texts[1], x: cx, y: y2 + fs + 2 + dy, anchor: 'middle', fs });
     return lines;
   }
-  let y = (y1 + y2) / 2 - (texts.length * fs * 1.25) / 2 + fs;
+  let y = (y1 + y2) / 2 - (texts.length * fs * 1.25) / 2 + fs + dy;
   return texts.map((text) => {
-    const line = { text, x: x2 + 8, y, anchor: 'start', fs };
+    const line = { text, x: x2 + 8 + dx, y, anchor: 'start', fs };
     y += fs * 1.25;
     return line;
   });
+}
+
+/** Ungefähre Umrandung einer Beschriftungszeile [x1, y1, x2, y2] (für das Anfassen mit der Maus). */
+export function labelLineBox(line) {
+  const w = line.text.length * line.fs * 0.56;
+  const x1 = line.anchor === 'middle' ? line.x - w / 2 : line.x;
+  return [x1, line.y - line.fs, x1 + w, line.y + 3];
 }
 
 export class EditorView {

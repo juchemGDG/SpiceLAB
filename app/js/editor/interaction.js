@@ -11,7 +11,7 @@
 //   Tasten: R drehen, M spiegeln, Entf löschen, W Leitung, P Messpunkt, Strg/⌘+Z/Y, Strg/⌘+C/V/A,
 //           0 einpassen, +/− zoomen
 
-import { GRID, worldBox, probeFlag, probeText } from './view.js';
+import { GRID, worldBox, probeFlag, probeText, labelLines, labelLineBox } from './view.js';
 import { segmentDistance, onSegment } from './geometry.js';
 import { cleanPoints } from './document.js';
 import { INK_SELECTED, esc } from './svg.js';
@@ -74,6 +74,18 @@ export class Interaction {
       const c = this.doc.comps[i];
       const [x1, y1, x2, y2] = worldBox(c);
       if (x >= x1 - 3 && x <= x2 + 3 && y >= y1 - 3 && y <= y2 + 3) return c;
+    }
+    return null;
+  }
+
+  /** Bauteil, dessen Beschriftung an der Stelle liegt. */
+  labelAt([x, y]) {
+    for (let i = this.doc.comps.length - 1; i >= 0; i--) {
+      const c = this.doc.comps[i];
+      for (const line of labelLines(c)) {
+        const [x1, y1, x2, y2] = labelLineBox(line);
+        if (x >= x1 - 3 && x <= x2 + 3 && y >= y1 - 3 && y <= y2 + 3) return c;
+      }
     }
     return null;
   }
@@ -269,6 +281,15 @@ export class Interaction {
     }
     if (pinHit && !multi) return this.startWire([pinHit.pin.x, pinHit.pin.y], 'drag', e);
 
+    // Beschriftung anfassen → verschieben
+    const labelled = !multi && this.labelAt(p);
+    if (labelled) {
+      this.selection = new Set([labelled.id]);
+      const { dx = 0, dy = 0 } = labelled.lo ?? {};
+      this.drag = { type: 'label', comp: labelled, start: p, base: { dx, dy }, moved: false };
+      return this.changed();
+    }
+
     const comp = this.compAt(p);
     if (comp) {
       if (multi) this.toggle(comp.id);
@@ -350,7 +371,7 @@ export class Interaction {
     else if (before) this.status(); // Anschluss verlassen → wieder die Übersicht
     const operable = this.hoverComp && this.isLive?.() && SWITCH_TYPES.has(this.hoverComp.type);
     this.view.svg.style.cursor = pinHit || this.tool !== 'select' ? 'crosshair' : operable ? 'pointer'
-      : this.hoverComp || this.probeAt(p) ? 'move' : 'default';
+      : this.hoverComp || this.probeAt(p) || this.labelAt(p) ? 'move' : 'default';
   }
 
   /** Taster drücken/loslassen: nur ein Zustand während der Bedienung, kein Rückgängig-Schritt. */
@@ -368,7 +389,12 @@ export class Interaction {
       this.startMove(d.start);
       return this.dragMove(e, p);
     }
-    if (d.type === 'pan') {
+    if (d.type === 'label') {
+      const dx = Math.round(d.base.dx + p[0] - d.start[0]);
+      const dy = Math.round(d.base.dy + p[1] - d.start[1]);
+      if (Math.abs(p[0] - d.start[0]) + Math.abs(p[1] - d.start[1]) > 2) d.moved = true;
+      d.comp.lo = { dx, dy };
+    } else if (d.type === 'pan') {
       this.view.x = d.vx + (e.clientX - d.sx);
       this.view.y = d.vy + (e.clientY - d.sy);
     } else if (d.type === 'band') {
@@ -419,6 +445,7 @@ export class Interaction {
     const d = this.drag;
     if (!d) return;
     this.drag = null;
+    if (d.moved) this.lastTap = null; // nach dem Ziehen zählt das Drücken nicht als erster Klick eines Doppelklicks
     if (d.type === 'press') {
       const { comp } = d;
       if (comp.type === 'button') this.setButton(comp, false);
@@ -437,7 +464,7 @@ export class Interaction {
         if (spot) Object.assign(pr, { x: spot[0], y: spot[1] });
       }
     }
-    if ((d.type === 'move' || d.type === 'segment') && d.moved) this.doc.commit();
+    if ((d.type === 'move' || d.type === 'segment' || d.type === 'label') && d.moved) this.doc.commit();
     this.changed();
   }
 
@@ -461,7 +488,7 @@ export class Interaction {
 
   onDouble(p) {
     if (this.wiring?.mode === 'click') return this.finishWire();
-    const comp = this.compAt(p);
+    const comp = this.compAt(p) ?? this.labelAt(p);
     if (comp) {
       this.selection = new Set([comp.id]);
       this.changed();

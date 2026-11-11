@@ -7,6 +7,7 @@ const HELP = `
     <li>Bauteil aus der linken Leiste auf die Fläche <b>ziehen</b> – oder in der Leiste <b>doppelklicken</b>, dann erscheint es in der Mitte.</li>
     <li><b>Werte ändern</b> (z. B. Widerstand, LED-Farbe, Batterietyp): <b>Doppelklick</b> auf das Bauteil.</li>
     <li><b>Drehen:</b> <kbd>R</kbd> oder „Drehen“. <b>Spiegeln:</b> <kbd>M</kbd>. Angeschlossene Leitungen laufen mit.</li>
+    <li><b>Beschriftung verschieben:</b> den Text (z. B. „R1 · 1 kΩ“) anfassen und ziehen.</li>
     <li><b>Löschen:</b> markieren, dann <kbd>Entf</kbd> oder „Löschen“.</li>
   </ul>
 </section>

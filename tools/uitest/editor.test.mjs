@@ -45,6 +45,21 @@ test('Eigenschaften-Dialog: Fehleingabe wird abgelehnt, 4k7 übernommen', async 
   assert.equal(await page.app(`return app.doc.comps[0].params.value`), 4700);
 });
 
+test('Beschriftung verschieben (rückgängig machbar), Doppelklick auf Beschriftung öffnet Eigenschaften', async () => {
+  await fresh();
+  await page.app(`app.doc.addComponent('resistor', 200, 100); app.doc.commit(); app.render();`);
+  // „R1“ steht mittig über dem Widerstand (y ≈ 84)
+  await page.drag(...(await page.screen(200, 85)), ...(await page.screen(240, 45)));
+  assert.deepEqual(await page.app(`return app.doc.comps[0].lo`), { dx: 40, dy: -40 });
+  assert.deepEqual(await page.app(`return [app.doc.comps[0].x, app.doc.comps[0].y]`), [200, 100], 'Bauteil bleibt stehen');
+  await page.key('z', 'KeyZ', { modifiers: 4 });
+  assert.equal(await page.app(`return app.doc.comps[0].lo ?? null`), null);
+  await page.dblclick(...(await page.screen(200, 85)));
+  await page.sleep(60);
+  assert.equal(await page.text('.dlg h2'), 'Widerstand R1');
+  await page.key('Escape', 'Escape');
+});
+
 /** Dämmerungsschalter (LDR, BC547B, LED) mit Masse. */
 const twilight = (lux) => page.app(`
   const d = app.doc;
