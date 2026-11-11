@@ -6,6 +6,7 @@ import { Interaction } from './editor/interaction.js';
 import { buildPalette } from './editor/palette.js';
 import { buildNetlist } from './editor/netlist.js';
 import { openProperties } from './editor/properties.js';
+import { simulate, annotationsSVG } from './ui/results.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -24,16 +25,42 @@ const ui = new Interaction({
   status: (text) => setStatus(text),
 });
 
-/** Zustand, den spätere Module (Eigenschaften, Simulation, Speichern) ergänzen. */
-export const app = { doc, view, ui, render, setStatus, annotations: '', highlight: new Set() };
+/** Gemeinsamer Zustand (auch für Bedienungstests im Browser erreichbar). */
+export const app = { doc, view, ui, render, setStatus, underlay: '', annotations: '', highlight: new Set(), live: false };
+
+// ── Simulation ──
+// Nach dem ersten „Simulieren“ wird bei jeder Änderung der Zeichnung neu gerechnet (live).
+
+const docKey = () => JSON.stringify([doc.comps, doc.wires]);
+let simulatedKey = null;
+
+function runSimulation() {
+  simulatedKey = docKey();
+  const sim = simulate(doc);
+  if (sim.ok) {
+    const { under, over } = annotationsSVG(doc, sim.result);
+    Object.assign(app, { underlay: under, annotations: over, highlight: new Set() });
+    const hints = [
+      sim.built.reference,
+      sim.built.skipped.length ? `Nicht angeschlossen: ${sim.built.skipped.join(', ')}` : null,
+      sim.built.isolated.length ? `Ohne Spannungsquelle (kein Strom): ${sim.built.isolated.join(', ')}` : null,
+    ];
+    setStatus(hints.filter(Boolean).join(' · ') || 'Arbeitspunkt berechnet');
+  } else {
+    Object.assign(app, { underlay: '', annotations: '', highlight: sim.highlight });
+    setStatus(sim.message, { error: true });
+  }
+}
 
 function render() {
+  if (app.live && docKey() !== simulatedKey) runSimulation();
   const { junctions } = buildNetlist(doc);
   view.render({
     doc,
     selection: ui.selection,
     junctions,
     overlay: ui.overlaySVG(),
+    underlay: app.underlay,
     annotations: app.annotations,
     highlight: app.highlight,
   });
@@ -82,6 +109,7 @@ buildPalette($('palette'), {
 // ── Menü ──
 
 const on = (id, fn) => $(id).addEventListener('click', fn);
+on('btn-simulate', () => { app.live = true; runSimulation(); render(); });
 on('btn-wire', () => ui.setTool(ui.tool === 'wire' ? 'select' : 'wire'));
 on('btn-rot', () => ui.rotate());
 on('btn-mir', () => ui.mirror());
@@ -104,6 +132,7 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     return;
   }
+  if (e.key === 'F5') { e.preventDefault(); $('btn-simulate').click(); }
   if (e.key === '0') { view.fit(doc); render(); }
   if (e.key === '+') { $('zoom-in').click(); }
   if (e.key === '-') { $('zoom-out').click(); }

@@ -101,7 +101,8 @@ export class EditorView {
   /**
    * Alles zeichnen.
    * @param {object} s Zustand: doc, selection (Set), junctions, overlay (SVG-Text für Hilfsgrafik),
-   *                   annotations (SVG-Text für Messwerte), highlight (Set fehlerhafter Bauteile)
+   *                   underlay/annotations (SVG-Text unter bzw. über der Zeichnung, z. B. Messwerte),
+   *                   highlight (Set fehlerhafter Bauteile)
    */
   render(s) {
     const r = this.svg.getBoundingClientRect();
@@ -111,6 +112,7 @@ export class EditorView {
       `<circle cx="${GRID / 2}" cy="${GRID / 2}" r="1.3" fill="#cbd5e1"/></pattern></defs>`;
     out += `<g transform="translate(${this.x} ${this.y}) scale(${this.z})">`;
     out += `<rect x="${x0}" y="${y0}" width="${r.width / this.z}" height="${r.height / this.z}" fill="url(#grid)"/>`;
+    out += s.underlay ?? '';
     out += sceneSVG(s.doc, { selection: s.selection, highlight: s.highlight, junctions: s.junctions });
     out += s.annotations ?? '';
     out += s.overlay ?? '';
