@@ -14,7 +14,7 @@ test('Katalog: eindeutige Kennungen, bekannte Kategorien und Symbole', () => {
   }
 });
 
-for (const entry of CATALOG.filter((e) => e.id !== 'gnd')) {
+for (const entry of CATALOG.filter((e) => !e.ground)) {
   test(`${entry.name}: Voreinstellungen ergeben eine berechenbare Schaltung`, () => {
     const params = defaultParams(entry);
     const pinNames = SYMBOLS[entry.symbol].pins.map((p) => p.name);
@@ -25,7 +25,8 @@ for (const entry of CATALOG.filter((e) => e.id !== 'gnd')) {
       return `n_${pinName}`;
     };
     const elements = entry.elements(params, net, 'X1');
-    assert.equal(used.size, pinNames.length, `${entry.id}: nicht alle Anschlüsse verwendet`);
+    // Schienen: alle Anschlüsse sind ohnehin verbunden, einer genügt
+    if (!entry.internallyConnected) assert.equal(used.size, pinNames.length, `${entry.id}: nicht alle Anschlüsse verwendet`);
     assert.equal(typeof entry.text(params), 'string');
     // jeden Anschluss über 1 kΩ an Masse legen, damit die Schaltung berechenbar ist
     const loads = pinNames.map((p, i) => ({ type: 'R', name: `RL${i}`, nodes: [`n_${p}`, '0'], value: 1000 }));

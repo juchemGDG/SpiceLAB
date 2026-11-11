@@ -2,8 +2,8 @@
 // Auswahl und Hilfsgrafik (Anschlusspunkte, Leitungsvorschau, Auswahlrahmen).
 // Bei jeder Änderung wird alles neu gezeichnet – bei Schulschaltungen schnell genug und einfach.
 
-import { CATALOG_BY_ID } from './catalog.js';
-import { SYMBOLS, symbolBounds } from './symbols.js';
+import { CATALOG_BY_ID, symbolOfComp } from './catalog.js';
+import { symbolBounds } from './symbols.js';
 import { svgTransform, toWorld } from './geometry.js';
 import { placedSymbolSVG, INK, INK_SELECTED, esc } from './svg.js';
 
@@ -25,7 +25,7 @@ export function entryOf(comp) {
 }
 
 export function symbolOf(comp) {
-  return SYMBOLS[entryOf(comp).symbol];
+  return symbolOfComp(comp);
 }
 
 /** Umrandung eines Bauteils in Zeichnungskoordinaten [x1, y1, x2, y2]. */

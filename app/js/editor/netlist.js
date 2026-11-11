@@ -46,7 +46,11 @@ export function buildNetlist(doc) {
   const groups = new Groups();
   const pins = doc.comps.map((c) => ({ comp: c, pins: doc.pins(c) }));
 
-  // 1. Verbinden: Punkte eines Linienzugs; Leitungsenden und Anschlüsse, die auf einer Leitung liegen
+  // 1. Verbinden: Punkte eines Linienzugs; Leitungsenden und Anschlüsse, die auf einer Leitung liegen;
+  //    alle Anschlüsse einer Schiene untereinander
+  for (const { comp, pins: ps } of pins) {
+    if (CATALOG_BY_ID.get(comp.type).internallyConnected) ps.forEach((p) => groups.union(key([p.x, p.y]), key([ps[0].x, ps[0].y])));
+  }
   for (const w of doc.wires) {
     for (let i = 1; i < w.pts.length; i++) groups.union(key(w.pts[i - 1]), key(w.pts[i]));
   }
@@ -96,7 +100,7 @@ export function buildNetlist(doc) {
 
   // 4. Knotennamen: Gruppen mit Massesymbol heißen '0', die übrigen N1, N2, …
   const groundGroups = new Set(
-    pins.filter(({ comp }) => comp.type === 'gnd').flatMap(({ pins: ps }) => ps.map((p) => groups.find(key([p.x, p.y])))),
+    pins.filter(({ comp }) => CATALOG_BY_ID.get(comp.type).ground).flatMap(({ pins: ps }) => ps.map((p) => groups.find(key([p.x, p.y])))),
   );
   const names = new Map();
   let counter = 0;
@@ -111,7 +115,7 @@ export function buildNetlist(doc) {
   const skipped = [];
   const placed = [];
   for (const { comp, pins: ps } of pins) {
-    if (comp.type === 'gnd') continue;
+    if (CATALOG_BY_ID.get(comp.type).ground) continue;
     if (!ps.some(connected)) skipped.push(comp.label || comp.type);
     else placed.push({ comp, entry: CATALOG_BY_ID.get(comp.type), nets: Object.fromEntries(ps.map((p) => [p.name, netName([p.x, p.y])])) });
   }
@@ -139,7 +143,7 @@ export function buildNetlist(doc) {
   const skippedComps = new Set();
   for (const members of byIsland.values()) {
     const nets = new Set(members.flatMap((m) => m.group.map((pin) => m.nets[pin])));
-    if (nets.has('0')) continue;
+    if (nets.has('0') || members.some((m) => m.entry.grounded)) continue; // hat schon Bezug zur Masse
     const source = members.find((m) => m.entry.source);
     const energized = members.find((m) => m.entry.energizes);
     if (source) {

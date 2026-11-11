@@ -183,6 +183,28 @@ test('Kopieren und Einfügen: neue Bezeichnungen, versetzt, Original unveränder
   assert.equal(doc.getComp(r.id).label, 'R1');
 });
 
+test('Potentialschiene +9 V und GND-Schiene: Anschlüsse an beliebiger Stelle, zwei gleiche Schienen kein Kurzschluss', () => {
+  const doc = new SchematicDocument();
+  const top = doc.addComponent('rail', 0, 0); // Anschlüsse (0,0) … (80,0)
+  doc.setParams(top.id, { voltage: 9 });
+  const top2 = doc.addComponent('rail', 200, 0); // zweite +9-V-Schiene, mit der ersten verbunden
+  doc.setParams(top2.id, { voltage: 9 });
+  doc.addWire([[80, 0], [200, 0]]);
+  doc.addComponent('groundRail', 0, 200); // Anschlüsse (0,200) … (80,200)
+  const r = doc.addComponent('resistor', 60, 100);
+  doc.rotateComponents([r.id]); // (60, 60) und (60, 140)
+  doc.addWire([[60, 0], [60, 60]]); // an Anschluss P3 der Schiene
+  doc.addWire([[60, 140], [60, 200]]);
+  const built = buildNetlist(doc);
+  assert.equal(built.reference, null, 'Schienen beziehen sich selbst auf Masse');
+  assert.equal(built.pinNets.get(r.id)['2'], '0');
+  const res = operatingPoint(built.netlist);
+  assert.ok(Math.abs(res.elements.R1.I - 9 / 1000) < 1e-4, `I = ${res.elements.R1.I}`);
+  // Länge ändern → mehr Anschlüsse
+  doc.setParams(top.id, { len: 6 });
+  assert.equal(doc.pins(top).length, 7);
+});
+
 test('Rückgängig und Wiederholen', () => {
   const doc = new SchematicDocument();
   doc.addComponent('resistor', 0, 0);

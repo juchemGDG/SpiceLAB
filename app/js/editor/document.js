@@ -7,8 +7,7 @@
 // Alle Änderungen laufen über Methoden dieser Klasse; commit() legt einen Rückgängig-Schritt an.
 // Keine DOM-Abhängigkeit – die Klasse ist in Node testbar.
 
-import { CATALOG_BY_ID, defaultParams } from './catalog.js';
-import { SYMBOLS } from './symbols.js';
+import { CATALOG_BY_ID, defaultParams, symbolOfComp } from './catalog.js';
 import { pinPositions } from './geometry.js';
 
 export const FILE_VERSION = 1;
@@ -104,7 +103,7 @@ export class SchematicDocument {
 
   /** Anschlüsse eines Bauteils in Zeichnungskoordinaten. */
   pins(comp) {
-    return pinPositions(comp, SYMBOLS[CATALOG_BY_ID.get(comp.type).symbol]);
+    return pinPositions(comp, symbolOfComp(comp));
   }
 
   /**

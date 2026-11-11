@@ -1,7 +1,10 @@
 // Bauteilkatalog: verbindet die Karten in der Seitenleiste mit dem Simulationskern.
 //
 // Jeder Eintrag beschreibt
-//   symbol   – Schaltzeichen (symbols.js)
+//   symbol   – Schaltzeichen (symbols.js); symbolFor(params) – Schaltzeichen aus den Einstellungen (Schienen)
+//   ground   – (optional) Bauteil legt seine Anschlüsse auf Masse (0 V)
+//   internallyConnected – (optional) alle Anschlüsse sind im Bauteil verbunden (Schienen)
+//   grounded – (optional) Bauteil bezieht sich selbst auf Masse (Potentialschiene): kein Bezugspunkt nötig
 //   source   – (optional) Anschluss, der bei fehlender Masse zum Bezugspunkt wird: Das Bauteil ist eine Quelle
 //   galvanic – (optional) Gruppen elektrisch verbundener Anschlüsse; Vorgabe: alle Anschlüsse zusammen
 //   energizes – (optional) versorgt galvanisch getrennte Teile (Transformator)
@@ -13,6 +16,7 @@
 // Die Kennwerte der Bibliothekstypen stehen in app/js/library – hier wird nur ausgewählt.
 
 import { formatValue } from '../ui/units.js';
+import { SYMBOLS, railSymbol, groundRailSymbol } from './symbols.js';
 import { BATTERIES } from '../library/batteries.js';
 import { DIODES, LEDS, ZENERS } from '../library/diodes.js';
 import { LAMPS } from '../library/lamps.js';
@@ -36,7 +40,22 @@ export const CATALOG = [
   // ── Versorgung ──
   {
     id: 'gnd', name: 'Masse', cat: 'Versorgung', symbol: 'gnd', prefix: '', hint: 'Bezugspunkt 0 V',
-    params: [], text: () => '', elements: () => [], // wird beim Aufbau der Netzliste zum Knoten '0'
+    ground: true, params: [], text: () => '', elements: () => [], // wird beim Aufbau der Netzliste zum Knoten '0'
+  },
+  {
+    id: 'rail', name: 'Potentialschiene', cat: 'Versorgung', symbol: 'rail', prefix: '', hint: 'z. B. +5 V gegen Masse',
+    symbolFor: (p) => railSymbol(p.len), internallyConnected: true, grounded: true,
+    params: [num('voltage', 'Spannung gegen Masse', 'V', 5), num('len', 'Länge (Rasterpunkte)', '', 4, { min: 1, max: 40 })],
+    text: (p) => `${p.voltage > 0 ? '+' : ''}${fmt(p.voltage, 'V')}`,
+    // wie ein Netzgerät zwischen Schiene und Masse (kleiner Innenwiderstand, damit zwei gleiche Schienen
+    // an derselben Leitung keinen „Kurzschluss zweier Spannungsquellen“ ergeben)
+    elements: (p, net, name) => [{ type: 'BAT', name, nodes: [net('P0'), '0'], voltage: p.voltage, internalResistance: 0.01 }],
+  },
+  {
+    id: 'groundRail', name: 'GND-Schiene', cat: 'Versorgung', symbol: 'groundRail', prefix: '', hint: 'Masse, verlängerbar',
+    symbolFor: (p) => groundRailSymbol(p.len), internallyConnected: true, ground: true,
+    params: [num('len', 'Länge (Rasterpunkte)', '', 4, { min: 1, max: 40 })],
+    text: () => '', elements: () => [],
   },
   {
     id: 'battery', name: 'Batterie / Akku', cat: 'Versorgung', symbol: 'battery', prefix: 'B', hint: 'mit Innenwiderstand',
@@ -245,6 +264,12 @@ export const CATALOG = [
 ];
 
 export const CATALOG_BY_ID = new Map(CATALOG.map((e) => [e.id, e]));
+
+/** Schaltzeichen eines Bauteils der Zeichnung (bei Schienen aus der eingestellten Länge). */
+export function symbolOfComp(comp) {
+  const entry = CATALOG_BY_ID.get(comp.type);
+  return entry.symbolFor ? entry.symbolFor(comp.params) : SYMBOLS[entry.symbol];
+}
 
 /** Voreinstellungen eines Katalogeintrags. */
 export function defaultParams(entry) {

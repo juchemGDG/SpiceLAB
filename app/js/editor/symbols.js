@@ -169,6 +169,30 @@ export const SYMBOLS = {
   },
 };
 
+// ── Schienen mit einstellbarer Länge (wie SchaltLab): ein Anschluss je Rasterpunkt ──
+
+/** Potentialschiene: dicke Linie, Anschlüsse P0 … Pn nach unten. */
+export function railSymbol(len = 4) {
+  const n = Math.max(1, Math.min(40, Math.round(len)));
+  return {
+    prims: [L(0, 0, n * 20, 0, { lw: 4, cap: 'butt' })],
+    pins: Array.from({ length: n + 1 }, (_, k) => pin(k * 20, 0, `P${k}`, 'S')),
+  };
+}
+
+/** GND-Schiene: dicke Linie mit Massezeichen in der Mitte, Anschlüsse nach oben. */
+export function groundRailSymbol(len = 4) {
+  const n = Math.max(1, Math.min(40, Math.round(len)));
+  const cx = n * 10;
+  return {
+    prims: [L(0, 0, n * 20, 0, { lw: 4, cap: 'butt' }), L(cx, 0, cx, 8), L(cx - 15, 8, cx + 15, 8, { lw: 2.5 }), L(cx - 10, 14, cx + 10, 14), L(cx - 5, 20, cx + 5, 20)],
+    pins: Array.from({ length: n + 1 }, (_, k) => pin(k * 20, 0, `G${k}`, 'N')),
+  };
+}
+
+SYMBOLS.rail = railSymbol(4); // für die Vorschau in der Bauteilleiste
+SYMBOLS.groundRail = groundRailSymbol(4);
+
 /** Grenzen eines Symbols (für Auswahlrahmen und Vorschau). */
 export function symbolBounds(sym) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
