@@ -24,6 +24,11 @@ const CURRENT = '#ea580c';
 const WARN = '#dc2626';
 const FONT = 'Helvetica, Arial, sans-serif';
 
+// Anzeige wie ein Schulmultimeter: Winzige Werte (z. B. Isolationsstrom eines offenen Schalters über
+// 1 GΩ) erscheinen als 0 – die Rechnung selbst bleibt unverändert.
+const showU = (u) => formatValue(Math.abs(u) < 1e-4 ? 0 : Math.abs(u), 'V');
+const showI = (i) => formatValue(Math.abs(i) < 1e-7 ? 0 : Math.abs(i), 'A');
+
 /** Bezeichnung der Messgrößen je Bauteiltyp. */
 const QUANTITIES = { npn: ['U_CE', 'I_C'], pnp: ['U_CE', 'I_C'], nmos: ['U_DS', 'I_D'], pmos: ['U_DS', 'I_D'], opamp: ['U_A', 'I_A'] };
 
@@ -57,12 +62,12 @@ function readings(comp, result) {
   if (comp.type === 'transformer') {
     const p = result.elements[`${name}:primär`];
     const s = result.elements[`${name}:sekundär`];
-    return { lines: [[`U₁ = ${formatValue(Math.abs(p.U), 'V')}`, VOLTAGE], [`U₂ = ${formatValue(Math.abs(s.U), 'V')}`, VOLTAGE]] };
+    return { lines: [[`U₁ = ${showU(p.U)}`, VOLTAGE], [`U₂ = ${showU(s.U)}`, VOLTAGE]] };
   }
   if (!el) return null;
   const [uName, iName] = QUANTITIES[comp.type] ?? ['U', 'I'];
   const out = {
-    lines: [[`${uName} = ${formatValue(Math.abs(el.U), 'V')}`, VOLTAGE], [`${iName} = ${formatValue(Math.abs(el.I), 'A')}`, CURRENT]],
+    lines: [[`${uName} = ${showU(el.U)}`, VOLTAGE], [`${iName} = ${showI(el.I)}`, CURRENT]],
     warnings: [],
   };
   const p = comp.params;

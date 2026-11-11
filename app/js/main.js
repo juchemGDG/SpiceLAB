@@ -23,6 +23,7 @@ const ui = new Interaction({
     render();
   },
   status: (text) => setStatus(text),
+  isLive: () => app.live,
 });
 
 /** Gemeinsamer Zustand (auch für Bedienungstests im Browser erreichbar). */

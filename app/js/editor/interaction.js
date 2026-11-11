@@ -16,6 +16,7 @@ import { cleanPoints } from './document.js';
 import { INK_SELECTED } from './svg.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
+const SWITCH_TYPES = new Set(['switch', 'button', 'changeover']);
 const snapValue = (v) => Math.round(v / GRID) * GRID || 0;
 const same = (a, b) => a[0] === b[0] && a[1] === b[1];
 
@@ -27,9 +28,10 @@ export class Interaction {
    * @param {() => void} deps.changed          neu zeichnen (nach jeder Änderung)
    * @param {(comp) => void} deps.openProperties
    * @param {(text?: string) => void} deps.status
+   * @param {() => boolean} [deps.isLive]  läuft die Simulation? (dann lassen sich Schalter bedienen)
    */
-  constructor({ doc, view, changed, openProperties, status }) {
-    Object.assign(this, { doc, view, changed, openProperties, status });
+  constructor({ doc, view, changed, openProperties, status, isLive }) {
+    Object.assign(this, { doc, view, changed, openProperties, status, isLive });
     this.selection = new Set();
     this.tool = 'select';
     this.wiring = null;
@@ -204,6 +206,17 @@ export class Interaction {
 
     const p = this.view.toWorld(e.clientX, e.clientY);
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;
+
+    // Während der Simulation: Schalter bedienen statt auswählen (Ziehen verschiebt weiterhin).
+    // Steht vor der Doppelklick-Erkennung, damit schnelles Umschalten keinen Dialog öffnet.
+    const operable = !this.wiring && this.tool === 'select' && !multi && this.isLive?.() ? this.compAt(p) : null;
+    if (operable && SWITCH_TYPES.has(operable.type) && !this.pinAt(p, 11 / this.view.z)) {
+      this.lastTap = null;
+      this.drag = { type: 'press', comp: operable, start: p, moved: false };
+      if (operable.type === 'button') this.setButton(operable, true);
+      return this.changed();
+    }
+
     const now = Date.now();
     const double = this.lastTap && now - this.lastTap.t < 400 && Math.hypot(e.clientX - this.lastTap.x, e.clientY - this.lastTap.y) < 14;
     this.lastTap = double ? null : { t: now, x: e.clientX, y: e.clientY };
@@ -275,11 +288,25 @@ export class Interaction {
     }
     if (pinHit) this.status(`${pinHit.comp.label || pinHit.comp.type} · Anschluss ${pinHit.pin.name}`);
     else if (before) this.status(); // Anschluss verlassen → wieder die Übersicht
-    this.view.svg.style.cursor = pinHit || this.tool === 'wire' ? 'crosshair' : this.hoverComp ? 'move' : 'default';
+    const operable = this.hoverComp && this.isLive?.() && SWITCH_TYPES.has(this.hoverComp.type);
+    this.view.svg.style.cursor = pinHit || this.tool === 'wire' ? 'crosshair' : operable ? 'pointer' : this.hoverComp ? 'move' : 'default';
+  }
+
+  /** Taster drücken/loslassen: nur ein Zustand während der Bedienung, kein Rückgängig-Schritt. */
+  setButton(comp, pressed) {
+    comp.params = { ...comp.params, closed: pressed };
   }
 
   dragMove(e, p) {
     const d = this.drag;
+    if (d.type === 'press') {
+      // doch gezogen → Taster loslassen und wie gewohnt verschieben
+      if (Math.hypot(p[0] - d.start[0], p[1] - d.start[1]) * this.view.z < 6) return;
+      if (d.comp.type === 'button') this.setButton(d.comp, false);
+      this.selection = new Set([d.comp.id]);
+      this.startMove(d.start);
+      return this.dragMove(e, p);
+    }
     if (d.type === 'pan') {
       this.view.x = d.vx + (e.clientX - d.sx);
       this.view.y = d.vy + (e.clientY - d.sy);
@@ -329,6 +356,14 @@ export class Interaction {
     const d = this.drag;
     if (!d) return;
     this.drag = null;
+    if (d.type === 'press') {
+      const { comp } = d;
+      if (comp.type === 'button') this.setButton(comp, false);
+      else if (comp.type === 'switch') this.doc.setParams(comp.id, { closed: !comp.params.closed });
+      else this.doc.setParams(comp.id, { position: comp.params.position === 'a' ? 'b' : 'a' });
+      if (comp.type !== 'button') this.doc.commit();
+      return this.changed();
+    }
     if (d.type === 'band') this.finishBand();
     if (d.type === 'segment') d.wire.pts = cleanPoints(d.wire.pts);
     if ((d.type === 'move' || d.type === 'segment') && d.moved) this.doc.commit();
