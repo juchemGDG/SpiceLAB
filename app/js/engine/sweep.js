@@ -15,7 +15,8 @@ import { solveDc, translateError } from './dc.js';
  * @param {object} netlist
  * @param {object} sweep
  * @param {string} sweep.element  Name des Bauteils, dessen Kennwert verändert wird (z. B. 'V1')
- * @param {string} [sweep.parameter]  Kennwert (Vorgabe 'value'; z. B. 'illuminance' beim LDR)
+ * @param {string|((spec, value) => object)} [sweep.parameter]  Kennwert (Vorgabe 'value'; z. B. 'illuminance' beim LDR)
+ *   oder Funktion, die aus dem Element mit dem neuen Wert ein neues Element macht
  * @param {number[]} sweep.values  die einzustellenden Werte
  * @param {object} [options]  Toleranzen (siehe SIM_DEFAULTS)
  * @returns {{ values: number[], potentials: Record<string, Float64Array>,
@@ -33,7 +34,9 @@ export function dcSweep(netlist, { element, parameter = 'value', values }, optio
 
   values.forEach((value, k) => {
     // Schaltung mit dem neuen Wert aufbauen und von der vorigen Lösung aus weiterrechnen
-    const changed = netlist.elements.map((e) => (e.name === element ? { ...e, [parameter]: value } : e));
+    // parameter als Funktion: ersetzt das ganze Element (z. B. Rampe → Gleichspannung)
+    const set = typeof parameter === 'function' ? parameter : (e, v) => ({ ...e, [parameter]: v });
+    const changed = netlist.elements.map((e) => (e.name === element ? set(e, value) : e));
     const circuit = new Circuit({ elements: changed });
     const system = new MnaSystem(circuit.nodeCount, circuit.branchCount);
     const ctx = createContext(options);

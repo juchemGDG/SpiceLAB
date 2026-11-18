@@ -78,3 +78,26 @@ test('Fehler: kein Bauteil gewählt, von = bis', () => {
   assert.throws(() => characteristic(d, { sourceId: 'nix', from: 0, to: 1, x: 'sweep', y: 'I:D1' }), CircuitError);
   assert.throws(() => characteristic(d, { sourceId: u.id, from: 2, to: 2, x: 'sweep', y: 'I:D1' }), /verschiedene/);
 });
+
+test('Rampe: durchfahrbar wie ein Netzgerät, Fühler und Strommesser als Achsen', () => {
+  const d = new SchematicDocument();
+  const u = d.addComponent('ramp', 0, 0);
+  d.setParams(u.id, { start: 0, end: 4, duration: 2 });
+  d.rotateComponents([u.id]);
+  const a = d.addComponent('ammeter', 100, -40);
+  const r = d.addComponent('resistor', 200, -40);
+  d.setParams(r.id, { value: 1000 });
+  d.addWire([[0, -40], [60, -40]]);
+  d.addWire([[140, -40], [160, -40]]);
+  d.addWire([[240, -40], [260, -40], [260, 40], [0, 40]]);
+  d.addComponent('gnd', 0, 40);
+  const probe = d.addProbe(160, -40);
+  const [source] = sweepSources(d);
+  assert.deepEqual([source.from, source.to], [0, 4], 'Bereich aus den Einstellungen der Rampe');
+  const q = quantities(d, source);
+  assert.ok(q.find((o) => o.id === `P:${probe.id}`).group.startsWith('Fühler'));
+  assert.ok(q.find((o) => o.id === `I:${a.label}`).group === 'Messgeräte');
+  const c = characteristic(d, { sourceId: u.id, from: 0, to: 4, points: 5, x: `P:${probe.id}`, y: `I:${a.label}` });
+  assert.deepEqual(c.source, [0, 1, 2, 3, 4]);
+  c.x.forEach((v, k) => { assert.ok(Math.abs(v - k) < 0.01); assert.ok(Math.abs(c.y[k] - k / 1000) < 2e-5); }); // 1 kΩ: U/R
+});

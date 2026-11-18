@@ -171,3 +171,21 @@ test('Speichern, Neu mit Nachfrage, Laden; Kopieren und Einfügen; Bildexport', 
   assert.equal(await page.text('#breadcrumb'), 'Versuch 1');
   assert.deepEqual(page.errors, []);
 });
+
+test('Gelegte Leitung nachträglich ändern: Stück seitlich ziehen, Eckpunkt ziehen', async () => {
+  await fresh();
+  await page.app(`app.view.z = 1; app.view.x = 0; app.view.y = 0; app.render();`);
+  await page.app(`app.doc.addWire([[100, 100], [100, 200], [300, 200]]); app.doc.addWire([[100, 400], [300, 400]]); app.doc.commit(); app.render();`);
+  const pts = () => page.app(`return app.doc.wires.map((w) => w.pts)`);
+  // waagerechtes Einzelstück nach unten ziehen: Zwischenpunkte entstehen, Enden bleiben
+  await page.drag(...(await page.screen(200, 400)), ...(await page.screen(200, 440)), 8);
+  assert.deepEqual((await pts())[1], [[100, 400], [100, 440], [300, 440], [300, 400]]);
+  // Leitung 1 anklicken (wählt sie), dann die Ecke (100,200) nach (160,260) ziehen
+  await page.drag(...(await page.screen(100, 150)), ...(await page.screen(100, 150)), 2);
+  await page.drag(...(await page.screen(100, 200)), ...(await page.screen(160, 260)), 8);
+  const w = (await pts())[0];
+  assert.deepEqual(w.at(-1), [300, 200], 'Ende bleibt');
+  assert.ok(w.some(([x, y]) => x === 160 && y === 260), 'Ecke steht am neuen Ort');
+  assert.ok(w.every((p, i) => i === 0 || p[0] === w[i - 1][0] || p[1] === w[i - 1][1]), 'alle Stücke rechtwinklig');
+  assert.deepEqual(page.errors, []);
+});

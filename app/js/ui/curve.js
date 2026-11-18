@@ -1,6 +1,6 @@
 // Kennlinienschreiber: Bedienfeld und Diagramm.
 
-import { sweepSources, quantities, defaultAxes, characteristic } from './curve-data.js';
+import { sweepSources, quantities, defaultAxes, characteristic, QUANTITY_GROUPS } from './curve-data.js';
 import { drawPlot } from './plot.js';
 import { formatValue, parseValue } from './units.js';
 import { CircuitError } from '../engine/errors.js';
@@ -23,15 +23,17 @@ export class CurvePanel {
     root.innerHTML = `
       <div class="scope-screen"><canvas></canvas></div>
       <div class="scope-side">
-        <label>Größe durchfahren<select data-k="source"></select></label>
+        <label>Quelle durchfahren<select data-k="source"></select></label>
         <div class="row"><label>von<input data-k="from"></label><label>bis<input data-k="to"></label></div>
-        <label>x-Achse<select data-k="x"></select></label>
-        <label>y-Achse<select data-k="y"></select></label>
+        <label>x-Achse (waagerecht)<select data-k="x"></select></label>
+        <label>y-Achse (senkrecht)<select data-k="y"></select></label>
+        <button data-k="replay" title="Die Quelle noch einmal langsam durchfahren und die Kurve Punkt für Punkt entstehen lassen">▶ Aufnahme wiederholen</button>
         <div class="scope-readout"></div>
       </div>`;
     this.canvas = root.querySelector('canvas');
     this.readout = root.querySelector('.scope-readout');
-    for (const el of root.querySelectorAll('[data-k]')) el.addEventListener('change', () => this.#changed(el.dataset.k));
+    for (const el of root.querySelectorAll('select[data-k], input[data-k]')) el.addEventListener('change', () => this.#changed(el.dataset.k));
+    this.#el('replay').addEventListener('click', () => this.#record());
     const move = (e) => {
       if (!this.plot || !this.result) return;
       const r = this.canvas.getBoundingClientRect();
@@ -66,7 +68,14 @@ export class CurvePanel {
     for (const k of ['x', 'y']) {
       const q = this.#el(k);
       q.innerHTML = '';
-      for (const o of qs) q.add(new Option(`${o.label} (${o.unit})`, o.id));
+      for (const g of QUANTITY_GROUPS) {
+        const items = qs.filter((o) => o.group === g);
+        if (!items.length) continue;
+        const group = document.createElement('optgroup');
+        group.label = g;
+        for (const o of items) group.append(new Option(`${o.label} (${o.unit})`, o.id));
+        q.append(group);
+      }
     }
     const def = defaultAxes(doc, source);
     const ids = new Set(qs.map((q) => q.id));
@@ -116,7 +125,24 @@ export class CurvePanel {
       if (!(err instanceof CircuitError)) throw err;
       this.status(err.message, true);
     }
-    this.draw();
+    this.#record();
+  }
+
+  /** Die Quelle von „von“ bis „bis“ durchfahren: Die Kurve entsteht Punkt für Punkt (wie am Schreiber im Labor). */
+  #record() {
+    cancelAnimationFrame(this.frame);
+    this.shown = null;
+    if (!this.result) return this.draw();
+    const n = this.result.x.length;
+    const seconds = 3;
+    const t0 = performance.now();
+    const step = (now) => {
+      const f = Math.min(1, (now - t0) / (seconds * 1000));
+      this.shown = f >= 1 ? null : Math.max(1, Math.round(f * (n - 1)) + 1);
+      this.draw();
+      if (f < 1) this.frame = requestAnimationFrame(step);
+    };
+    this.frame = requestAnimationFrame(step);
   }
 
   #unit(id) {
@@ -143,23 +169,29 @@ export class CurvePanel {
     const qx = this.#unit(this.state.x);
     const qy = this.#unit(this.state.y);
     const { x, y, marker } = this.result;
+    const n = this.shown ?? x.length;
+    const recording = this.shown !== null && this.shown !== undefined;
     this.plot = drawPlot(g, { x: 0, y: 0, w, h }, {
-      series: [{ xs: x, ys: y, color: COLOR }],
+      // unsichtbare Gesamtkurve legt die Achsen fest, damit sie sich während der Aufnahme nicht verschieben
+      series: [{ xs: x, ys: y, color: 'rgba(0,0,0,0)' }, { xs: x.slice(0, n), ys: y.slice(0, n), color: COLOR }],
       xTitle: `${qx.label} (${qx.unit})`,
       yTitle: `${qy.label} (${qy.unit})`,
       formatX: (v) => formatValue(v, qx.unit, 3),
       formatY: (v) => formatValue(v, qy.unit, 3),
-      marker: marker && { ...marker, color: '#ea580c' },
+      marker: recording ? { x: x[n - 1], y: y[n - 1], color: COLOR } : marker && { ...marker, color: '#ea580c' },
       cursorX: this.cursorX,
     });
     const lines = [];
-    if (this.cursorX !== null) {
+    if (recording) {
+      const src = this.result.source?.[n - 1];
+      lines.push(`Aufnahme: ${this.source.label} = ${formatValue(src ?? 0, this.source.unit)}`, `x = ${formatValue(x[n - 1], qx.unit)}`, `y = ${formatValue(y[n - 1], qy.unit)}`);
+    } else if (this.cursorX !== null) {
       // y-Wert zum Cursor: nächster berechneter Punkt (x ist nicht immer monoton, deshalb Suche nach Abstand)
       let best = 0;
       for (let k = 1; k < x.length; k++) if (Math.abs(x[k] - this.cursorX) < Math.abs(x[best] - this.cursorX)) best = k;
       lines.push(`x = ${formatValue(x[best], qx.unit)}`, `y = ${formatValue(y[best], qy.unit)}`);
     }
-    if (marker) lines.push('<span style="color:#ea580c">●</span> Arbeitspunkt der Schaltung');
+    if (marker && !recording) lines.push('<span style="color:#ea580c">●</span> Arbeitspunkt der Schaltung');
     this.readout.innerHTML = lines.join('<br>');
   }
 }

@@ -57,7 +57,7 @@ const HELP = `
 <section>
   <h3>Kennlinie und Frequenzgang</h3>
   <ul>
-    <li><b>⌇ Kennlinie</b> (<kbd>K</kbd>): Ein Wert wird schrittweise durchgefahren – z. B. die Spannung des Netzgeräts, die Helligkeit am LDR oder die Temperatur am NTC. Darunter trägst du zwei Größen gegeneinander auf, z. B. <b>Strom durch die LED über der Spannung an der LED</b>. Der orange Punkt ist der Arbeitspunkt deiner Schaltung. Für die Kennlinie einer Z-Diode fährst du das Netzgerät ins Negative (z. B. von −10 V bis 0 V).</li>
+    <li><b>⌇ Kennlinie</b> (<kbd>K</kbd>): Ein Wert wird schrittweise durchgefahren – z. B. die Spannung des Netzgeräts, die Helligkeit am LDR oder die Temperatur am NTC. Darunter trägst du zwei Größen gegeneinander auf, z. B. <b>Strom durch die LED über der Spannung an der LED</b>. Der orange Punkt ist der Arbeitspunkt deiner Schaltung. Beim Öffnen (und mit „▶ Aufnahme wiederholen“) siehst du, wie die Kurve entsteht: Die Quelle wird von „von“ bis „bis“ gleichmäßig hochgedreht, für jeden Wert wird der Punkt eingetragen. Als Achsen wählst du am besten <b>Fühler</b> (Messpunkte, Spannung gegen Masse) und <b>Strommesser</b> – wie im Labor. Mit der Quelle <b>Rampe</b> (Versorgung) steigt die Spannung auch im Oszilloskop gleichmäßig an; ihr Bereich ist gleich der Vorgabe für „von/bis“. Für die Kennlinie einer Z-Diode fährst du das Netzgerät ins Negative (z. B. von −10 V bis 0 V).</li>
     <li><b>⌁ Frequenzgang</b> (<kbd>F</kbd>): Wie im Labor wird die Wechselspannungsquelle nacheinander auf viele Frequenzen gestellt; gezeigt werden <b>Verstärkung (dB)</b> und <b>Phasenverschiebung</b> an den Messpunkten gegenüber dem Eingang. Rechts steht, wo die Verstärkung um 3 dB gefallen ist (Grenzfrequenz).</li>
   </ul>
 </section>

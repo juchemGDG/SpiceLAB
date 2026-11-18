@@ -70,6 +70,10 @@ export const SYMBOLS = {
     prims: [...circleSource, PL([[-9, 5], [-9, -5], [0, -5], [0, 5], [9, 5], [9, -5]], { lw: 2, upright: 1 })],
     pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')],
   },
+  rampSource: {
+    prims: [...circleSource, PL([[-9, 5], [9, -5], [9, 5]], { lw: 2, upright: 1 })],
+    pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')],
+  },
   currentSource: {
     prims: [...circleSource, ...arrow(-9, 0, 10, 0, 7)],
     pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')], // Strom fließt im Bauteil von 1 nach 2

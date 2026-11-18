@@ -37,7 +37,7 @@ nicht signiert (Windows: SmartScreen-Warnung, macOS: Rechtsklick → Öffnen). N
   Wechsel-/Rechteckquelle, Solarzelle, Schalter, Taster, Umschalter, Spannungs- und Strommesser,
   Potential- und GND-Schiene, Fototransistor, Summer – mit Datenblattwerten typischer Schulbauteile.
 - **Messen:** Messpunkte (Prüfspitzen) zeigen Potenziale; Hinweis beim Überfahren; Oszilloskop mit Zeitlupe;
-  Kennlinienschreiber; Frequenzgang (Verstärkung und Phase); Stromrichtung als Pfeile.
+  Kennlinienschreiber (Kurve entsteht Schritt für Schritt, Achsen per Fühler und Strommesser) mit Rampenquelle; Frequenzgang (Verstärkung und Phase); Stromrichtung als Pfeile.
 - **Bedienen:** Schalter und Taster während der Simulation; Werte live ändern.
 - **Dateien:** Speichern/Laden (`.spicelab.json`), SchaltLab-Dateien öffnen, PNG/SVG-Export.
 - **Genauigkeit:** Rechenverfahren wie ngspice (abgeglichen, siehe [docs/MODELLE.md](docs/MODELLE.md)).

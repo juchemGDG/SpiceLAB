@@ -69,7 +69,11 @@ export function snapshotAt(tr, t) {
 
 /** Frequenzen der Quellen in der Zeichnung (für die automatische Zeitbasis). */
 export function sourceFrequencies(doc) {
-  return doc.comps.filter((c) => c.type === 'sine' || c.type === 'square').map((c) => c.params.frequency);
+  return doc.comps.flatMap((c) => {
+    if (c.type === 'sine' || c.type === 'square') return [c.params.frequency];
+    if (c.type === 'ramp') return [1 / (c.params.duration * (c.params.mode === 'triangle' ? 2 : 1))]; // Periode = ein Durchlauf (hin und zurück)
+    return [];
+  });
 }
 
 /** Fehler des Simulationskerns → Meldung mit Bauteilnamen und zu markierende Bauteile. */

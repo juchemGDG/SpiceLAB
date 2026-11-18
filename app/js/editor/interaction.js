@@ -6,6 +6,7 @@
 //                                         wechseln, Esc = abbrechen
 //   Bauteil ziehen                      → verschieben (Leitungen laufen mit)
 //   Leitungsstück ziehen                → seitlich verschieben
+//   Eckpunkt einer gewählten Leitung    → Ecke verschieben (die Stücke bleiben rechtwinklig)
 //   Fläche ziehen                       → Auswahlrahmen; Leertaste/mittlere Taste/zwei Finger → Ansicht verschieben
 //   Doppelklick auf Bauteil             → Eigenschaften
 //   Tasten: R drehen, M spiegeln, Entf löschen, W Leitung, P Messpunkt, Strg/⌘+Z/Y, Strg/⌘+C/V/A,
@@ -268,6 +269,13 @@ export class Interaction {
     if (this.tool === 'wire') return this.startWire(this.snapPoint(p), 'drag', e);
     if (this.tool === 'probe') return this.placeProbe(p);
 
+    // Eckpunkt der gewählten Leitung anfassen (Vorrang vor allem anderen, was darunter liegt)
+    const corner = !multi && this.cornerAt(p);
+    if (corner) {
+      this.drag = { type: 'corner', wire: corner.wire, i: corner.i, base: clone(corner.wire.pts), moved: false };
+      return this.changed();
+    }
+
     // Messpunkt: Fähnchen hat Vorrang; der Punkt selbst erst nach den Anschlüssen (sonst ließe sich
     // an einem Anschluss mit Messpunkt keine Leitung mehr ziehen)
     const flagHit = this.probeAt(p);
@@ -314,6 +322,35 @@ export class Interaction {
     this.band = { x1: p[0], y1: p[1], x2: p[0], y2: p[1], multi };
     this.drag = { type: 'band' };
     this.changed();
+  }
+
+  /** Eckpunkt (nicht Anfang/Ende) der einzeln gewählten Leitung an der Stelle. */
+  cornerAt(p) {
+    if (this.selection.size !== 1) return null;
+    const wire = this.doc.wires.find((w) => this.selection.has(w.id));
+    if (!wire) return null;
+    const tol = 9 / this.view.z;
+    for (let i = 1; i < wire.pts.length - 1; i++) {
+      if (Math.hypot(wire.pts[i][0] - p[0], wire.pts[i][1] - p[1]) <= tol) return { wire, i };
+    }
+    return null;
+  }
+
+  /**
+   * Eckpunkt i auf q setzen: Die beiden anliegenden Stücke wandern mit und bleiben waagerecht/senkrecht.
+   * Stücke an einem Anschluss bleiben dort stehen (es wird ein Zwischenpunkt eingefügt).
+   */
+  moveCorner(base, i, q) {
+    const pts = clone(base);
+    const prevH = base[i - 1][1] === base[i][1];
+    const nextH = base[i][1] === base[i + 1][1];
+    let k = i;
+    if (k - 1 === 0) { pts.unshift([...pts[0]]); k++; }
+    if (k + 1 === pts.length - 1) pts.push([...pts.at(-1)]);
+    pts[k - 1][prevH ? 1 : 0] = q[prevH ? 1 : 0];
+    pts[k + 1][nextH ? 1 : 0] = q[nextH ? 1 : 0];
+    pts[k] = [...q];
+    return pts;
   }
 
   toggle(id) {
@@ -411,6 +448,10 @@ export class Interaction {
       for (const w of this.doc.wires) if (this.selection.has(w.id)) w.pts = w.pts.map(([x, y]) => [x + dx, y + dy]);
       for (const pr of this.doc.probes) if (this.selection.has(pr.id)) Object.assign(pr, { x: pr.x + dx, y: pr.y + dy });
       this.doc.moveComponents([...this.selection].filter((id) => this.doc.getComp(id)), dx, dy);
+    } else if (d.type === 'corner') {
+      const q = [snapValue(p[0]), snapValue(p[1])];
+      if (!same(q, d.base[d.i])) d.moved = true;
+      d.wire.pts = this.moveCorner(d.base, d.i, q);
     } else if (d.type === 'segment') {
       const base = clone(d.base);
       let i = d.seg;
@@ -455,7 +496,7 @@ export class Interaction {
       return this.changed();
     }
     if (d.type === 'band') this.finishBand();
-    if (d.type === 'segment') d.wire.pts = cleanPoints(d.wire.pts);
+    if (d.type === 'segment' || d.type === 'corner') d.wire.pts = cleanPoints(d.wire.pts);
     if (d.type === 'move' && d.moved && [...this.selection].every((id) => this.doc.getProbe(id))) {
       // nur Messpunkte verschoben: auf die nächste Leitung bzw. den nächsten Anschluss einrasten
       for (const id of this.selection) {
@@ -464,7 +505,7 @@ export class Interaction {
         if (spot) Object.assign(pr, { x: spot[0], y: spot[1] });
       }
     }
-    if ((d.type === 'move' || d.type === 'segment' || d.type === 'label') && d.moved) this.doc.commit();
+    if ((d.type === 'move' || d.type === 'segment' || d.type === 'corner' || d.type === 'label') && d.moved) this.doc.commit();
     this.changed();
   }
 

@@ -2,7 +2,9 @@
 //
 // Jeder Eintrag beschreibt
 //   symbol   – Schaltzeichen (symbols.js); symbolFor(params) – Schaltzeichen aus den Einstellungen (Schienen)
-//   sweep    – (optional) Größe für den Kennlinienschreiber: { param (im Element), unit, from, to, scale, label }
+//   sweep    – (optional) Größe für den Kennlinienschreiber: { param (im Element), unit, from, to, scale, label };
+//              from/to dürfen Funktionen der Einstellungen sein; mit apply(spec, wert) lässt sich statt eines
+//              einzelnen Kennwerts das ganze Element ersetzen (z. B. die Rampe durch eine Gleichspannung)
 //   flow     – (optional) Anschlusspaar [von, nach] für die Stromrichtung (Vorgabe: die ersten zwei Anschlüsse); noFlow: keine Anzeige
 //   ground   – (optional) Bauteil legt seine Anschlüsse auf Masse (0 V)
 //   internallyConnected – (optional) alle Anschlüsse sind im Bauteil verbunden (Schienen)
@@ -99,6 +101,26 @@ export const CATALOG = [
         type: 'V', name, nodes: [net('1'), net('2')],
         waveform: { shape: 'pulse', low: p.low, high: p.high, rise: edge, fall: edge, width: (period * p.duty) / 100 - edge, period },
       }];
+    },
+  },
+  {
+    id: 'ramp', name: 'Rampe (Netzgerät mit Durchlauf)', cat: 'Versorgung', symbol: 'rampSource', prefix: 'U',
+    hint: 'Spannung steigt gleichmäßig an',
+    source: '2',
+    sweep: {
+      param: 'waveform', unit: 'V', label: 'Spannung der Rampe', from: (p) => p.start, to: (p) => p.end,
+      apply: (spec, v) => ({ ...spec, waveform: { shape: 'pulse', low: v, high: v, width: 1, period: Infinity } }),
+    },
+    params: [num('start', 'Startspannung', 'V', 0), num('end', 'Endspannung', 'V', 5), num('duration', 'Dauer des Durchlaufs', 's', 1, { min: 1e-6 }),
+      sel('mode', 'Verlauf', [{ value: 'saw', label: 'Sägezahn (springt zurück)' }, { value: 'triangle', label: 'Dreieck (rauf und runter)' }], 'saw')],
+    text: (p) => `${fmt(p.start, 'V')} → ${fmt(p.end, 'V')} in ${fmt(p.duration, 's')}`,
+    elements: (p, net, name) => {
+      const T = p.duration;
+      const edge = Math.min(1e-6, T / 1000);
+      const wave = p.mode === 'triangle'
+        ? { shape: 'pulse', low: p.start, high: p.end, rise: T, fall: T, width: 0, period: 2 * T }
+        : { shape: 'pulse', low: p.start, high: p.end, rise: T, fall: edge, width: 0, period: T + edge };
+      return [{ type: 'V', name, nodes: [net('1'), net('2')], waveform: wave }];
     },
   },
   {

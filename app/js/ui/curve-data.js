@@ -5,6 +5,7 @@
 import { dcSweep } from '../engine/sweep.js';
 import { operatingPoint } from '../engine/dc.js';
 import { CircuitError } from '../engine/errors.js';
+import { normalizeWaveform, waveformValue } from '../engine/waveforms.js';
 import { buildNetlist } from '../editor/netlist.js';
 import { CATALOG_BY_ID } from '../editor/catalog.js';
 import { entryOf } from '../editor/view.js';
@@ -17,17 +18,32 @@ const MEASURABLE = (comp) => {
 
 /** Bauteile, deren Wert durchgefahren werden kann (Quellen, Poti, LDR, NTC, Solarzelle). */
 export function sweepSources(doc) {
-  return doc.comps.filter((c) => entryOf(c).sweep).map((c) => ({ comp: c, ...entryOf(c).sweep, name: nameOf(c) }));
+  const value = (v, comp) => (typeof v === 'function' ? v(comp.params) : v);
+  return doc.comps.filter((c) => entryOf(c).sweep).map((c) => {
+    const sw = entryOf(c).sweep;
+    return { comp: c, ...sw, from: value(sw.from, c), to: value(sw.to, c), name: nameOf(c) };
+  });
 }
 
-/** Messgrößen: [{ id, label, unit }] – Quellenwert, Spannung und Strom der Bauteile, Potenziale der Messpunkte. */
+/** Reihenfolge der Gruppen in den Auswahllisten: erst, was man im Labor abgreift. */
+export const QUANTITY_GROUPS = ['Quelle', 'Fühler (Messpunkte)', 'Messgeräte', 'Bauteile'];
+
+/**
+ * Messgrößen: [{ id, label, unit, group }] – Quellenwert, Potenziale der Messpunkte („Fühler“),
+ * Anzeige der Mess­geräte, Spannung und Strom der Bauteile.
+ */
 export function quantities(doc, source) {
-  const out = [{ id: 'sweep', label: `${source.label} von ${source.name}`, unit: source.unit }];
+  const out = [{ id: 'sweep', label: `${source.label} von ${source.name}`, unit: source.unit, group: QUANTITY_GROUPS[0] }];
   for (const c of doc.comps.filter(MEASURABLE)) {
     const name = nameOf(c);
-    out.push({ id: `U:${name}`, label: `Spannung an ${name}`, unit: 'V' }, { id: `I:${name}`, label: `Strom durch ${name}`, unit: 'A' });
+    const inst = entryOf(c).instrument; // 'U' (Spannungsmesser) oder 'I' (Strommesser)
+    const group = inst ? QUANTITY_GROUPS[2] : QUANTITY_GROUPS[3];
+    out.push(
+      { id: `U:${name}`, label: inst ? `${name} zeigt Spannung` : `Spannung an ${name}`, unit: 'V', group },
+      { id: `I:${name}`, label: inst ? `${name} zeigt Strom` : `Strom durch ${name}`, unit: 'A', group },
+    );
   }
-  for (const p of doc.probes) out.push({ id: `P:${p.id}`, label: `Potenzial ${p.label}`, unit: 'V' });
+  for (const p of doc.probes) out.push({ id: `P:${p.id}`, label: `Spannung am Fühler ${p.label} (gegen Masse)`, unit: 'V', group: QUANTITY_GROUPS[1] });
   return out;
 }
 
@@ -59,7 +75,7 @@ function reader(id, sweep, built, shown) {
 /**
  * Kennlinie berechnen.
  * @param {object} p  { sourceId, from, to, points, x, y } (x, y: Messgrößen-Kennungen)
- * @returns {{ x: number[], y: number[], marker: {x, y}|null }}
+ * @returns {{ x: number[], y: number[], source: number[], marker: {x, y}|null }}
  * @throws {CircuitError}
  */
 export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) {
@@ -73,7 +89,7 @@ export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) 
   const floor = source.min ?? -Infinity;
   const shown = Array.from({ length: points }, (_, k) => Math.max(floor, from + ((to - from) * k) / (points - 1)));
   // beim Durchfahren wird ein Kennwert des Bauteils in der Netzliste ersetzt (z. B. voltage, illuminance)
-  const sweep = dcSweep(built.netlist, { element: source.name + (source.elementSuffix ?? ''), parameter: source.param, values: shown.map((v) => v * scale) });
+  const sweep = dcSweep(built.netlist, { element: source.name + (source.elementSuffix ?? ''), parameter: source.apply ?? source.param, values: shown.map((v) => v * scale) });
   const gx = reader(x, sweep, built, shown);
   const gy = reader(y, sweep, built, shown);
   const xs = shown.map((_, k) => gx(k));
@@ -83,7 +99,7 @@ export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) 
   let marker = null;
   try {
     const spec = built.netlist.elements.find((e) => e.name === source.name + (source.elementSuffix ?? ''));
-    const now = spec[source.param] / scale;
+    const now = source.apply ? waveformValue(normalizeWaveform(spec.waveform, source.name), 0) / scale : spec[source.param] / scale; // Rampe: Wert zu Beginn
     const op = operatingPoint(built.netlist);
     const at = (id) => {
       if (id === 'sweep') return now;
@@ -98,5 +114,5 @@ export function characteristic(doc, { sourceId, from, to, points = 100, x, y }) 
     const my = at(y);
     if (Number.isFinite(mx) && Number.isFinite(my)) marker = { x: mx, y: my };
   } catch { /* ohne Marke weiter */ }
-  return { x: xs, y: ys, marker };
+  return { x: xs, y: ys, source: shown, marker };
 }

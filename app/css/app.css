@@ -183,6 +183,8 @@ input, textarea, select, .dlg-text, #help-body { user-select: text; -webkit-user
 .scope-side .row label { flex: 1; min-width: 0; }
 .scope-side input:not([type=checkbox]) { padding: 5px 6px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; width: 100%; }
 .scope-side input.invalid:not([type=checkbox]) { border-color: var(--danger); }
+.scope-side button { padding: 5px 8px; border: 1px solid var(--topbar-border); border-radius: var(--radius-btn); background: #fff; font-size: 12px; cursor: pointer; }
+.scope-side button:hover { background: var(--surface-hover); }
 .scope-readout { font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 #bode { height: 340px; }
 @media (max-width: 800px) { .panel { height: 340px; flex-direction: column; } .scope-side { width: auto; flex-direction: row; flex-wrap: wrap; } }
